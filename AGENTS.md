@@ -74,4 +74,4 @@ Obtain explicit approval before:
 - changing authentication, invitation, authorization, encryption, data retention, or deletion behavior;
 - changing the database schema without an agreed migration plan;
 - changing brand direction or approved design tokens;
-- implementing native mobile clients, PDF/calendar import, or push notifications, which are outside V1.
+- implementing native mobile clients or push notifications, which are outside V1. PDF cronograma import into the shared agenda is in scope for V1 (see `docs/PRD.md`, "Shared agenda and PDF cronograma import"); full personal-schedule import and external calendar integrations remain outside V1.

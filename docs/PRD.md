@@ -12,7 +12,7 @@ The initial validation household has two members. The product must support invit
 
 ## Problem
 
-Household information is fragmented across documents, calendars, and conversations. In the initial household, one member's medical-school schedule is difficult to consult in a PDF, meal decisions lead to daily friction, and bills, chores, and grocery needs are not visible together. The schedule/PDF problem is acknowledged but is not part of the first release.
+Household information is fragmented across documents, calendars, and conversations. In the initial household, one member's medical-school schedule is difficult to consult in a PDF, meal decisions lead to daily friction, and bills, chores, and grocery needs are not visible together. The broader personal-schedule/PDF problem (full personal timetables, appointments, external calendar sync) is descoped from V1, but importing the recurring class schedule ("cronograma") PDF into the shared agenda is confirmed as part of the MVP: see "Shared agenda and PDF cronograma import" below.
 
 ## Goal
 
@@ -26,6 +26,20 @@ Let a household member quickly understand today's household responsibilities, th
 - The product is not limited to students or couples.
 
 ## Core Features (V1)
+
+The MVP's first two features, in priority order, are the shared agenda/calendar and PDF cronograma import described immediately below; the remaining V1 features build on that foundation.
+
+### Shared agenda and PDF cronograma import
+
+- A household can have multiple named agendas (for example, "Agenda de Amanda", "Agenda de Andréa"), grouped under one household. An agenda is a filterable collection of calendar items, distinct from household membership.
+- The calendar view lets a user select one or more agendas to filter what is shown. When no agenda is selected, all agendas are shown combined.
+- Each calendar item belongs to exactly one agenda (its owner). Ownership is not shown via item color, because color already encodes discipline/subject on the calendar. Instead, show a small badge/dot in the item's top-right corner (or an equivalent tag) identifying which user's agenda the item belongs to.
+- A household member can import a class schedule ("cronograma") PDF into an agenda. The supported PDF format is organized by week and time slot; the file does not include a year.
+  - Year assignment: parsing starts from the current year for the first week found. Whenever a later week's month is earlier than the previous week's month (a December-to-January crossing), that week and every following week roll over to the next year.
+- Before attaching a parsed PDF to an agenda, show a confirmation screen: "tem certeza que deseja anexar o pdf {titulo} à agenda?" ("are you sure you want to attach the PDF {titulo} to the agenda?"). Nothing is written to the agenda until the user confirms.
+- Re-uploading a new PDF for an agenda diffs it against the previously imported PDF (items added, removed, or moved) and applies the result automatically, without a per-item review step, since the item count makes manual review impractical.
+  - Exception: if a previously imported item was manually edited by a user after import, overwriting it on re-import requires explicit user confirmation instead of being applied automatically.
+  - Every PDF-imported item tracks an "edited manually" flag/state, set when a user edits that item after import, so a future re-import knows whether the automatic-overwrite exception applies.
 
 ### Household and access
 
@@ -135,7 +149,7 @@ Review the targets after the first usability sessions; do not add third-party an
 
 ## Out of Scope
 
-- Personal schedules/agenda (for example, class timetables and appointments), importing or parsing schedule PDFs, and external calendar integrations (planned for V2). This does not exclude the V1 task calendar and daily household agenda described above.
+- Full personal schedules/agenda beyond the shared calendar (for example, personal appointments unrelated to the household) and external calendar integrations (planned for V2). PDF cronograma import into the shared agenda is in V1 (see "Shared agenda and PDF cronograma import" above); this does not exclude the V1 task calendar and daily household agenda described elsewhere in this document.
 - Browser/device push notifications (V2).
 - Native iOS/Android clients; V1 is a responsive PWA.
 - Bill payment execution, bank integrations, financial advice, or receipt/document storage.
