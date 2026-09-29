@@ -10,6 +10,18 @@ Domiyo is a shared household operations tool. Its interface should feel clear, c
 
 Use the actual product domain (home routines, meals, bills, shared responsibilities) to inform future visual choices. Avoid generic SaaS styling and decorative elements that compete with dates, statuses, and next actions. Do not finalize an aesthetic direction until it is reviewed against the design documents and screens supplied by the product owner.
 
+## Logo
+
+**Status:** Approved by the product owner (2026-09-28).
+
+- **Symbol ("Ponto + D"):** an "i" (circular dot plus rounded stem) beside a half-disc that forms the "D" of Domus. It represents the household member and the home. The symbol's dot echoes the dot of the "i" in the wordmark.
+- **Wordmark:** "domiyo" in lowercase, Sora SemiBold, letter-spacing about -0.03em. The dot of the "i" is a colored circle. Sora is used for the logo only; interface typography stays Roboto (see Typography).
+- **Light version (white or light background):** stem and text `#382344` (`lavender.900`); half-disc and dots `#716EAE` (`lavender.700`).
+- **Dark version (`#382344` background):** stem `#B9B8E1` (`lavender.300`); half-disc and dots `#C9FA5A` (`lime.500`); text white. Never use lime on a white background.
+- **App icon:** `#382344` background, dark symbol at 70% of the icon width, corner radius 230/1024 when the platform does not apply its own mask.
+- **Clear space and minimum size:** keep clear space around the whole logo at least equal to the height of the symbol's dot. Minimum size: lockup 80px wide; symbol alone 16px.
+- **Source of truth:** the "Logo" page in Figma, components "Logo/Lockup" and "Logo/Símbolo A · Ponto + D". Exported files (SVG and PNG) are in `docs/design/logo/`.
+
 ## Color Tokens
 
 **Status:** Confirmed by the product owner (2026-09-28), as a primitive palette plus the semantic mapping below. Mirrored in Figma as the `Domiyo Colors` variable collection. Do not invent additional hex values or introduce a second palette; extend this table instead.
