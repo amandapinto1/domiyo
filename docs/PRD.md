@@ -32,7 +32,8 @@ The MVP's first two features, in priority order, are the shared agenda/calendar 
 ### Shared agenda and PDF cronograma import
 
 - A household can have multiple named agendas (for example, "Agenda de Amanda", "Agenda de Andréa"), grouped under one household. An agenda is a filterable collection of calendar items, distinct from household membership.
-- The calendar view lets a user select one or more agendas to filter what is shown. When no agenda is selected, all agendas are shown combined.
+- The calendar view lets a user select one or more agendas to filter what is shown, through a multiselect with a "Todas as agendas" option that selects every agenda. When every agenda is selected, the field reads "Todas as agendas". At least one agenda must stay selected; the last selected agenda cannot be deselected (decided by the product owner on 2026-09-29).
+- The home screen ("Início") shows only the logged-in user's own agenda, with no agenda filter (decided by the product owner on 2026-09-29).
 - Each calendar item belongs to exactly one agenda (its owner). Ownership is not shown via item color, because color already encodes discipline/subject on the calendar. Instead, show a small badge/dot in the item's top-right corner (or an equivalent tag) identifying which user's agenda the item belongs to.
 - A household member can import a class schedule ("cronograma") PDF into an agenda. The supported PDF format is organized by week and time slot; the file does not include a year.
   - Year assignment: parsing starts from the current year for the first week found. Whenever a later week's month is earlier than the previous week's month (a December-to-January crossing), that week and every following week roll over to the next year.

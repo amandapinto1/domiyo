@@ -12,12 +12,12 @@ The MVP home shows only the logged-in user's name and today's agenda items. Upco
 
 1. **Header:** "Olá, {primeiro nome}" (Page Title, `lavender.900`) + full date in pt-BR (Body Small, `ink.600`) + notifications bell button (48px, `white`, `radius.full`).
 2. **"Agenda de hoje" card** (`white`, `radius.xl`, padding 20, gap 20):
-   - Title (Section Heading) + summary "{n} compromissos · {n} agendas" (Body Small) + a 40px round button that opens the Agenda screen.
-   - Agenda filter chips, one per household agenda (Label, `lavender.600` 1.5px border, `radius.full`). Multi-select; no chip selected means all agendas are shown (PRD).
+   - Title (Section Heading) + summary "{n} compromissos" (Body Small) + a 40px round button that opens the Agenda screen.
+   - No agenda filter: Início shows only the logged-in user's own agenda (product owner decision, 2026-09-29). Filtering across household agendas lives on the Agenda screen.
    - Week strip: 7 day pills (40px wide, `lavender.100`, `radius.full`), number in Numeric Emphasis and weekday in Body Small. The selected day uses `lavender.900` with white number, `lavender.300` weekday, and a 6px `lime.500` dot. Tapping a day changes the timeline below.
 3. **Timeline** (outside the card, to avoid nested cards): one row per item, time label (Body Small, `ink.600`, 40px column) + item card. Free slots between items show the hour with a dashed `lavender.600` divider.
    - **Item card:** fill = subject color (see below), `radius.md`, padding 12/16. Subject name (Label, `ink.900`), then "{início} – {fim} · {tipo}" (Body Small, `ink.900`).
-   - **Owner tag:** top-right white pill with the agenda owner's first name (Label, `lavender.900`). Ownership is never shown by color, because color encodes the subject (PRD).
+   - **No owner tag on Início:** every item belongs to the logged-in user, so the owner tag is omitted here. The Agenda screen, which can combine agendas, keeps the top-right owner tag (ownership is never shown by color, because color encodes the subject; PRD).
 4. **Bottom navigation:** floating bar, `lavender.900`, `radius.full`, 24px from the screen edges. Active item is a `lime.500` pill with icon + label; inactive items are icon-only in `lavender.300` (code must give them accessible names). Variants: `Ativo=Início | Agenda | Perfil` × `Tom=Escuro | Claro` (the light-toned bar is used on the dark theme). UI copy uses "Início" (pt-BR) for the item the owner called "Home".
 
 ## Subject colors
@@ -92,8 +92,8 @@ Contrast on dark: `white` on `lavender.950` ≈17.8:1; `lavender.300` on `lavend
 
 ## Sample data
 
-The screen uses sample items (Dermatologia, Oncologia, Clínica Cirúrgica 1, Habilidades e Atitudes Profissionais VII) and the agendas "Amanda" and "Andréa". They are placeholders, not real schedule data.
+The screen uses sample items from the logged-in user's agenda ("Amanda"): Dermatologia, Oncologia, Habilidades e Atitudes Profissionais VII. They are placeholders, not real schedule data.
 
 ## Not yet designed
 
-Loading, empty ("Nenhum compromisso hoje"), error, and selected-filter states; the day with no items; the navigation animation (reference: the owner's Dribbble clip, where the active pill slides between items; must respect `prefers-reduced-motion`).
+Loading, empty ("Nenhum compromisso hoje"), and error states; the day with no items; the navigation animation (reference: the owner's Dribbble clip, where the active pill slides between items; must respect `prefers-reduced-motion`).
