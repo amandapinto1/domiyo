@@ -4,3 +4,20 @@
 .env
 .env.*
 !.env.example
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Logs and OS files
+*.log
+.DS_Store

@@ -44,6 +44,6 @@ Dark versions follow the dark mapping in `docs/design/inicio/README.md` (sheet `
 
 ## Technical notes
 
-- The PDF is stored encrypted (see `docs/ARCHITECTURE.md` › "Sensitive data and field-level encryption"). The API decrypts it only for an authorized household member and streams it with `Content-Type: application/pdf`, `Content-Disposition: inline` (Abrir) or `attachment` (Baixar), and `Cache-Control: no-store`.
-- Never expose a public or guessable file URL. Use the agenda's stable public identifier on an authenticated endpoint.
+- The PDF is stored encrypted (see `docs/ARCHITECTURE.md` › "Sensitive data and field-level encryption"). An authenticated Route Handler decrypts it only for an authorized household member and streams it with `Content-Type: application/pdf`, `Content-Disposition: inline` (Abrir) or `attachment` (Baixar), and `Cache-Control: no-store`.
+- Never expose a public or guessable file URL. Use the agenda's stable public identifier on an authenticated Route Handler.
 - The file name is decrypted server-side and sanitized in the `Content-Disposition` header.

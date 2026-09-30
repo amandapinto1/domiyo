@@ -2,13 +2,13 @@
 
 ## Project Context
 
-Domiyo is a household coordination PWA for bills, tasks, meals, recipes, and grocery shopping. Read [docs/PRD.md](docs/PRD.md), [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md), and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing product behavior, user-facing design, or system structure.
+Domiyo is a household coordination PWA for bills, tasks, meals, recipes, and grocery shopping. Read [docs/PRD.md](docs/PRD.md), [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/CONVENTIONS.md](docs/CONVENTIONS.md) before changing product behavior, user-facing design, system structure, or code.
 
-The initial technical direction is React + TypeScript for the web client, NestJS + TypeScript for the API, PostgreSQL for persistence, and a `pnpm` workspace. Treat this as the approved starting direction, not permission to introduce unreviewed infrastructure or paid services. Exact library versions and runnable commands are established when the application scaffold exists.
+The approved technical direction (product owner, 2026-09-30) is a single full-stack Next.js application (App Router, TypeScript) with PostgreSQL, Drizzle ORM and migrations, Better Auth for email-and-password authentication, Tailwind + shadcn/ui themed with our design tokens, Vitest + Playwright for tests, `pnpm`, and Railway for hosting. Treat this as the approved direction, not permission to introduce unreviewed infrastructure or paid services. Exact library versions and runnable commands are established when the application scaffold exists.
 
 ## Before You Start
 
-- Read the three product/design/architecture documents above and any more-specific `AGENTS.md` or repository instructions that apply to the files being changed.
+- Read the product, design, architecture, and conventions documents above and any more-specific `AGENTS.md` or repository instructions that apply to the files being changed.
 - Inspect the current implementation and tests before editing. Do not assume the planned architecture has already been scaffolded.
 - Use the project's existing package scripts and conventions. Do not report a command as available unless it exists in the repository.
 - For UI work, inspect the design documents and screen references in `docs/design/`, along with current design tokens, before proposing visual changes. If the screen you are building has no reference there yet, say so instead of inventing a final visual design. The Figwright MCP (with the Figwright plugin open in Figma) is the approved way for agents to read and write Figma designs. Do not configure or use any other MCP server, including the official Figma MCP, without the product owner's approval.
@@ -25,12 +25,12 @@ The initial technical direction is React + TypeScript for the web client, NestJS
 
 ## Code Guidelines
 
-- Use TypeScript for frontend and backend code; retain strict compiler settings once configured.
+- Use TypeScript everywhere; retain strict compiler settings once configured. Follow the folder layout and patterns in `docs/CONVENTIONS.md` (route-level `_components`, `_actions`, `_data-access`; shared logic in `src/server`).
 - Keep UI, application/domain logic, and persistence concerns separated according to the existing project structure.
-- Use explicit, domain-oriented names. Share types only where a real client/API contract benefits from it; do not couple the frontend to database entities.
-- Validate untrusted input at API boundaries and return safe, actionable errors without leaking implementation details.
+- Use explicit, domain-oriented names. Do not pass database rows to Client Components; data-access functions return minimal view models.
+- Validate untrusted input with Zod at every server boundary (Server Actions, Route Handlers) and return safe, actionable errors without leaking implementation details.
 - Use database migrations for every schema change. Never edit production schema manually or change schema without a migration and corresponding tests.
-- Use stable, non-enumerable public identifiers for resources exposed through the API.
+- Use stable, non-enumerable public identifiers (UUIDs) for resources exposed in URLs, forms, or Server Action arguments.
 - Do not add dependencies without first checking whether the repository already provides the capability. Explain why a new dependency is needed and obtain approval for paid or externally hosted services.
 
 ## Design Rules
@@ -45,11 +45,11 @@ The initial technical direction is React + TypeScript for the web client, NestJS
 
 - Treat LGPD as a product and engineering constraint, but do not claim legal compliance without review by a qualified professional.
 - Never access, print, copy, commit, or expose secret values, credentials, tokens, private keys, or production data. Do not open secret-bearing files such as `.env`; use variable names and a sanitized `.env.example` only. Ask the owner to perform any operation that requires secret access.
-- Never put secrets in frontend bundles, source control, logs, test fixtures, screenshots, or error responses.
-- Enforce authorization on the server for every resource and action, with household membership checked on every relevant request. Never rely on client-side filtering to enforce household isolation.
-- Hash passwords with a suitable password-hashing algorithm. Use secure session/cookie practices, CSRF protection where applicable, rate-limit authentication and invitation endpoints, and expire/revoke invitation links.
+- Never put secrets in client bundles, source control, logs, test fixtures, screenshots, or error responses. Never prefix a secret with `NEXT_PUBLIC_`. Modules that touch the database, keys, or PDF parsing import `server-only` and run in the Node.js runtime.
+- Enforce authorization on the server for every resource and action, with household membership checked on every relevant request. Every Server Action and Route Handler is a public endpoint: each one calls `requireSession()` and, for household data, `requireHouseholdMember()`. Middleware/proxy redirects are not authorization. Never rely on client-side filtering to enforce household isolation.
+- Hash passwords with Argon2id (configured in Better Auth). Use secure session/cookie practices, keep the Server Action and Better Auth origin checks on (CSRF), rate-limit authentication and invitation endpoints, and expire/revoke invitation links. Apply the security checklist in `docs/CONVENTIONS.md` to every change.
 - Encrypt traffic in transit and database storage at rest. Sensitive fields must be encrypted at field level in the database; until the sensitive-data inventory exists, flag any new personal or sensitive field for classification instead of storing it unreviewed. Keep encryption keys outside the database and outside source control. Do not invent cryptographic primitives; use maintained, platform-supported implementations and document key management.
-- Minimize personal data in logs and telemetry. Do not add analytics or external data processors without approval and a privacy review.
+- Minimize personal data in logs and telemetry. Do not add analytics, error monitoring (Sentry is deferred), or other external data processors without approval and a privacy review.
 - Use the [OpenAI Security Best Practices skill](https://raw.githubusercontent.com/openai/skills/main/skills/.curated/security-best-practices/SKILL.md) for security-sensitive work. Check its language/framework-specific references relevant to the changed code and apply them alongside these project rules.
 - Report suspected exposure or mishandling of secrets or personal data promptly; do not reproduce the exposed values in the report.
 
@@ -58,12 +58,12 @@ The initial technical direction is React + TypeScript for the web client, NestJS
 The application has not been scaffolded yet. Do not assume these commands exist. Once manifests and scripts are added, document the exact commands here and use the repository-defined scripts for:
 
 - dependency installation;
-- local development for web and API;
+- local development (app and database);
 - unit/integration tests;
 - lint and typecheck;
 - production build.
 
-The intended package manager is `pnpm`; confirm the workspace scripts before running commands.
+The package manager is `pnpm`; confirm the scripts in `package.json` before running commands.
 
 ## Boundaries
 

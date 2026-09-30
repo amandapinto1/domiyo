@@ -6,7 +6,7 @@
 
 `emails-preview.html` is a visual reference only (it loads web fonts and uses modern CSS). The production templates must be rebuilt with tables and inline styles, with a plain-text version of each email.
 
-Values in `{braces}` are filled by the API. Links always use `APP_PUBLIC_URL`. Dates use the pt-BR format and the MVP time zone (`America/Fortaleza`).
+Values in `{braces}` are filled by the server. Links always use `APP_PUBLIC_URL`. Dates use the pt-BR format and the MVP time zone (`America/Fortaleza`).
 
 ## 1. Household invitation
 
