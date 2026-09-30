@@ -17,7 +17,7 @@ The MVP home shows only the logged-in user's name and today's agenda items. Upco
    - Week strip: 7 day pills (40px wide, `lavender.100`, `radius.full`), number in Numeric Emphasis and weekday in Body Small. The selected day uses `lavender.900` with white number, `lavender.300` weekday, and a 6px `lime.500` dot. Tapping a day changes the timeline below.
 3. **Timeline** (outside the card, to avoid nested cards): one row per item, time label (Body Small, `ink.600`, 40px column) + item card. Free slots between items show the hour with a dashed `lavender.600` divider.
    - **Item card:** fill = subject color (see below), `radius.md`, padding 12/16. Subject name (Label, `ink.900`), then "{início} – {fim} · {tipo}" (Body Small, `ink.900`).
-   - **No owner tag on Início:** every item belongs to the logged-in user, so the owner tag is omitted here. The Agenda screen, which can combine agendas, keeps the top-right owner tag (ownership is never shown by color, because color encodes the subject; PRD).
+   - **No owner avatar on Início:** every item belongs to the logged-in user, so the owner indicator is omitted here. The Agenda screen, which can combine agendas, shows the owner with the "Avatar mini" component (24px, white, `lavender.900` initials of first name + surname, or the profile photo). Ownership is never shown by color, because color encodes the subject (PRD).
 4. **Bottom navigation:** floating bar, `lavender.900`, `radius.full`, 24px from the screen edges. Active item is a `lime.500` pill with icon + label; inactive items are icon-only in `lavender.300` (code must give them accessible names). Variants: `Ativo=Início | Agenda | Perfil` × `Tom=Escuro | Claro` (the light-toned bar is used on the dark theme). UI copy uses "Início" (pt-BR) for the item the owner called "Home".
 
 ## Subject colors
@@ -39,11 +39,11 @@ Figma variable collection `Disciplinas` holds the 12 colors from the legend at t
 | `disciplina/clinica-cirurgica-1` | `#52FEFE` |
 | `disciplina/clinica-cirurgica-2` | `#44FD3E` |
 
-**Open question:** these colors belong to this semester's PDF. In the product they should probably come from each imported PDF's legend (data), not from fixed design tokens. Decide before implementation.
+**Decided (2026-09-30):** these colors are only the sample from this semester's PDF. In the product, each subject's color comes from the legend of the imported PDF (stored as data with the import); the `Disciplinas` collection is a design sample, not a token set.
 
 ## Desktop
 
-Figma frame "Início / Desktop" (1440×900). Responsive breakpoints are still TBD (`docs/DESIGN_SYSTEM.md`), so this is a first proposal, not a confirmed breakpoint.
+Figma frame "Início / Desktop" (1440×900). Breakpoints are decided in `docs/DESIGN_SYSTEM.md` › "Breakpoints": the desktop shell starts at 768 px (sidebar collapsed from 768 to 1023 px, expanded from 1024 px).
 
 ![Início desktop](inicio-desktop.png)
 
@@ -51,7 +51,7 @@ Figma frame "Início / Desktop" (1440×900). Responsive breakpoints are still TB
 - **Header and "Agenda de hoje" card** are the same components as mobile, just placed in a wider canvas — no new patterns.
 - **Two-column body:** the agenda card and timeline keep a readable fixed width (600px) instead of stretching full-bleed (per "avoid a marketing landing page" / scanability). The remaining space is a second column, currently an empty dashed placeholder ("Próximas contas e tarefas — Em breve nesta área.") reserving room for the bills/tasks summaries the PRD defers past this MVP slice, so adding them later doesn't require re-flowing this layout.
 - Item cards, chips, week strip, and the dark-theme mapping all apply unchanged — only the shell (sidebar vs. bottom bar, column width) is desktop-specific.
-- **Not decided:** the actual breakpoint where the layout switches from the mobile bottom-bar shell to this sidebar shell, and what fills the second column first (likely next bill + next task, per the PRD's home dashboard requirements) — both need a product decision before implementation.
+- **Decided (2026-09-30):** the layout switches from the bottom-bar shell to the sidebar shell at 768 px. **Not decided:** what fills the second column first (likely next bill + next task, per the PRD's home dashboard requirements) — this needs a product decision before that area is implemented.
 
 ### Collapsible sidebar
 
@@ -66,11 +66,11 @@ The sidebar can retract to an icon-only rail. Frame "Início / Desktop / Sidebar
 - The content area reflows to use the freed width (both columns are `FILL`/fixed-680, not pinned to the sidebar's width), so collapsing is a live layout change, not an overlay.
 - **Not designed:** the icon-only nav items need an accessible name and a hover tooltip (icons alone aren't a label) once this becomes code; the expand/collapse transition should respect `prefers-reduced-motion`; and whether the collapsed state persists per user (e.g. `localStorage`) or resets every session is an open decision.
 
-## Dark theme (proposal)
+## Dark theme
 
-Figma frame "Início / Mobile / Escuro". **Not yet approved:** the confirmed palette has no dark background or surface (`ink.900` and `lavender.900` have almost the same luminance, ≈1.01:1), so this version proposes two new primitives, kept in the separate Figma collection `Proposta · Tema escuro` until the product owner approves them:
+Figma frame "Início / Mobile / Escuro". **Approved by the product owner on 2026-09-30.** The original palette had no dark background or surface (`ink.900` and `lavender.900` have almost the same luminance, ≈1.01:1), so the dark theme adds two primitives, still in the Figma collection named `Proposta · Tema escuro` (rename it to `Tema escuro` in the Figma UI; the plugin cannot rename collections):
 
-| Proposed token | Hex | Derivation |
+| Token | Hex | Derivation |
 | --- | --- | --- |
 | `lavender.950` | `#1F1326` | `lavender.900` darkened ~45%; screen background |
 | `lavender.800` | `#493964` | `lavender.900` mixed 30% with `lavender.700`; raised controls |
@@ -86,7 +86,18 @@ Figma frame "Início / Mobile / Escuro". **Not yet approved:** the confirmed pal
 | Secondary text, time labels | `ink.600` | `lavender.300` |
 | Selected day | `lavender.900`, white text, `lime.500` dot | `lime.500`, `lavender.900` text and dot |
 | Navigation bar | `Tom=Escuro`: `lavender.900` bar, `lime.500` active pill with `lavender.900` icon/label, `lavender.300` inactive icons | `Tom=Claro`: `lavender.100` bar, `lavender.900` active pill with `lime.500` icon/label, `lavender.700` inactive icons (≈3.7:1) |
-| Item cards, owner tag | unchanged | unchanged (subject colors keep `ink.900` text) |
+| Item cards, owner avatar | unchanged | unchanged (subject colors keep `ink.900` text) |
+| Sheets, dialogs, side panels | `white` | `lavender.900`; scrim opacity 55% → 66% |
+| Form inputs | `white`, `lavender.600` border | `lavender.950` inside app screens (`lavender.900` on the auth screens, whose card is `lavender.800`); border unchanged |
+| Primary button | `lavender.900`, white label, `lime.500` arrow circle | `lime.500`, `lavender.900` label, `lavender.900` arrow circle with `lime.500` arrow |
+| Secondary button | `white`, `lavender.600` border | transparent, `lavender.600` border, white label |
+| Destructive button / text | `danger.600` (white label) | `danger.300` (`lavender.900` label); the error icon circle keeps `danger.100` with a `danger.600` icon |
+| Selected option (radio row) | `lavender.100` fill, `lavender.900` border | `lavender.800` fill, `lime.500` border |
+| Links | `Link` component, `Tema=Claro` | `Link` component, `Tema=Escuro` (`lime.500`) |
+| Logo | light version: stem and text `lavender.900`, "D" and dots `lavender.700` | dark version (product owner decision, 2026-09-30): stem `lavender.300`, "D" and both dots `lime.500`, text white — as in `docs/DESIGN_SYSTEM.md` › Logo |
+| Auth screens (login, sign-up, reset) | `lavender.500`→`lavender.300` gradient, `white` card | `lavender.900` background, `lavender.800` card, sun icon on the theme toggle |
+
+The dark versions of every MVP screen (mobile and desktop) were generated from this mapping on 2026-09-30.
 
 Contrast on dark: `white` on `lavender.950` ≈17.8:1; `lavender.300` on `lavender.950` ≈9.3:1, on `lavender.900` ≈7.4:1, on `lavender.800` ≈5.4:1; `lavender.600` chip/divider borders on `lavender.900` ≈4.2:1 (≥3:1 for UI components).
 

@@ -1,1 +1,6 @@
 .claude/
+
+# Local secrets
+.env
+.env.*
+!.env.example

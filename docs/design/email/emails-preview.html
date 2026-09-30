@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Layouts de e-mail</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Sora:wght@600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F4F4;font-family:Roboto,Arial,sans-serif;padding:32px}
+h1{font:500 24px Roboto,Arial,sans-serif;color:#382344;margin:0 0 6px}
+.lead{font-size:14px;color:#77758D;margin:0 0 24px}
+.wrap{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+.tag{font:500 13px Roboto,Arial,sans-serif;color:#77758D;margin:0 0 8px}
+.mail{width:600px;background:#E4E3F2;padding:32px 0 24px}
+.logo{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;font:600 26px Sora,Arial,sans-serif;color:#382344;letter-spacing:-.03em}
+.logo i{display:inline-block;position:relative;width:26px;height:30px}
+.logo i:before{content:"";position:absolute;left:0;top:0;width:9px;height:9px;border-radius:50%;background:#716EAE}
+.logo i:after{content:"";position:absolute;left:0;top:11px;width:9px;height:19px;border-radius:5px;background:#382344}
+.logo b{position:absolute;left:11px;top:0;width:15px;height:30px;border-radius:0 15px 15px 0;background:#716EAE}
+.card{margin:0 auto;width:520px;background:#fff;border-radius:28px;padding:40px;box-sizing:border-box}
+.card h2{font:500 28px/36px Roboto,Arial,sans-serif;color:#382344;margin:0 0 16px}
+.card p{font:400 16px/24px Roboto,Arial,sans-serif;color:#2B2944;margin:0 0 16px}
+.btn{display:inline-block;background:#382344;color:#fff;text-decoration:none;font:500 16px Roboto,Arial,sans-serif;padding:14px 28px;border-radius:999px;margin:8px 0 24px}
+.small{font:400 13px/18px Roboto,Arial,sans-serif;color:#77758D;margin:0 0 8px}
+.small a{color:#332DB4;font-weight:500;text-decoration:none;overflow-wrap:anywhere}
+.foot{width:520px;margin:20px auto 0;font:400 12px/18px Roboto,Arial,sans-serif;color:#77758D;text-align:center}
+.box{background:#E4E3F2;border-radius:16px;padding:12px 16px;font:400 14px/20px Roboto,Arial,sans-serif;color:#2B2944;margin:0 0 16px}
+</style></head><body>
+<h1>Layouts de e-mail · MVP</h1>
+<p class="lead">600px, cartão branco sobre lavender.100, um único botão principal, link alternativo por extenso e aviso de validade. Sem imagens além do logo e sem rastreamento. Cada e-mail também vai em versão só texto.</p>
+<div class="wrap">
+
+<div><p class="tag">1 · Convite para o household</p>
+<div class="mail"><div class="logo"><i><b></b></i>domiyo</div>
+<div class="card"><h2>Amanda convidou você para o Domiyo</h2>
+<p>Você recebeu um convite para entrar no household <b>“Casa da Amanda e da Andréa”</b> e organizar a agenda da casa em conjunto.</p>
+<a class="btn" href="#">Aceitar convite</a>
+<p class="small">Se o botão não funcionar, copie e cole este link no navegador:<br><a href="#">https://domiyo.app/convite/8F3K-2QX7</a></p>
+<p class="small">Este convite vale até 6 de outubro e só pode ser usado uma vez.</p></div>
+<p class="foot">Você recebeu este e-mail porque Amanda Pinto informou este endereço ao convidar você. Se não conhece essa pessoa, ignore esta mensagem.<br>E-mail automático do Domiyo — não responda.</p></div></div>
+
+<div><p class="tag">2 · Redefinir senha</p>
+<div class="mail"><div class="logo"><i><b></b></i>domiyo</div>
+<div class="card"><h2>Crie uma nova senha</h2>
+<p>Recebemos um pedido para redefinir a senha da sua conta no Domiyo.</p>
+<a class="btn" href="#">Criar nova senha</a>
+<p class="small">Se o botão não funcionar, copie e cole este link no navegador:<br><a href="#">https://domiyo.app/redefinir-senha/…</a></p>
+<p class="small">O link vale por 1 hora e só pode ser usado uma vez. Se você não pediu, ignore este e-mail: sua senha continua a mesma.</p></div>
+<p class="foot">E-mail automático do Domiyo — não responda.</p></div></div>
+
+<div><p class="tag">3 · Senha alterada</p>
+<div class="mail"><div class="logo"><i><b></b></i>domiyo</div>
+<div class="card"><h2>Sua senha foi alterada</h2>
+<p>A senha da sua conta no Domiyo foi alterada.</p>
+<div class="box">30 de setembro de 2026, às 14:32 (horário de Fortaleza)</div>
+<p>Se foi você, está tudo certo e não precisa fazer nada.</p>
+<p>Se não foi você, redefina sua senha agora e avise quem mora com você.</p>
+<a class="btn" href="#">Redefinir senha</a>
+<p class="small">Se o botão não funcionar, copie e cole este link no navegador:<br><a href="#">https://domiyo.app/esqueci-a-senha</a></p></div>
+<p class="foot">Enviamos este aviso por segurança sempre que a senha muda.<br>E-mail automático do Domiyo — não responda.</p></div></div>
+
+</div></body></html>

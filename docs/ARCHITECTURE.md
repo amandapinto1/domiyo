@@ -28,7 +28,8 @@ The PWA may cache its static application shell for installation and faster repea
 | Package management | `pnpm` workspace | Proposed; confirm at scaffold time |
 | Authentication | Email and password | Product decision confirmed; implementation/session strategy pending |
 | Deployment | Cloudflare Pages for the static PWA; Railway for API and managed PostgreSQL | Recommended starting topology; confirm domains, pricing, and data region before launch |
-| Email delivery | Needed for email invitations; provider not selected | Open decision; no paid provider without approval |
+| Email delivery | Provider-agnostic adapter (SMTP first, console in development); see "Email delivery" | Planned; provider not selected, no paid provider without approval |
+| File storage | Cronograma PDFs and profile photos stored encrypted in PostgreSQL (`bytea`) for the MVP; see "Sensitive data and field-level encryption" | Planned; avoids adding a storage service |
 | Design source | Product-owner-created screens and design decisions supplied as documents in `docs/design/` | Planned handoff; agents may use the Figwright MCP for Figma, no other MCP integration |
 
 Exact framework versions, ORM/query layer, validation library, component system, and session implementation are not chosen yet. Select maintained options during scaffold, document them, and obtain approval before choices that materially affect security, recurring cost, or architecture.
@@ -77,9 +78,63 @@ Keep API persistence models separate from client-facing contracts. Do not create
 - Use UUIDs or other non-enumerable public identifiers for API resources. Apply foreign keys, uniqueness constraints, and indexes that reflect household ownership and common date/status queries.
 - Model household ownership explicitly and make authorization-compatible query patterns easy to audit. Consider including household scope in relevant uniqueness constraints.
 - All schema changes must be versioned migrations, reviewed, and covered by tests. Preserve a tested backup and restore path before production launch.
-- Encrypt database storage at rest and all network connections in transit. A sensitive-data inventory does not exist yet; producing it is an open decision shared with `PRD.md`. Once produced, fields it classifies as sensitive must also use field-level encryption in the database. Encryption keys must be managed separately from database contents and source code; define key rotation and recovery procedures before production launch.
-- No file/blob storage is required by V1. Do not add receipt or document storage without a product decision and threat/privacy review.
-- Define retention, account/household deletion, data export, and invitation expiry policies before production launch.
+- Encrypt database storage at rest and all network connections in transit. Fields classified as sensitive also use field-level encryption (see below). Encryption keys are managed separately from database contents and source code; define key rotation and recovery procedures before production launch.
+- The only stored files are imported cronograma PDFs (one per agenda, replaced on re-import) and profile photos. For the MVP they live encrypted in PostgreSQL (`bytea`) with size limits: PDF up to 10 MB, photo resized to at most 512×512 px and 1 MB before encryption. Revisit object storage only if measured size or cost requires it; any storage service needs approval.
+- Define retention, account/household deletion, data export, and invitation expiry policies before production launch. Deleting a member's agenda (when they leave or are removed) also deletes its items and stored PDF.
+
+### Sensitive data and field-level encryption
+
+Decided by the product owner on 2026-09-30. Treat this as the technical plan for review, not a legal compliance determination; have it reviewed by a qualified professional before production.
+
+| Data | Storage |
+| --- | --- |
+| Agenda item: `id`, `agenda_id`, `starts_at`, `ends_at` (`timestamptz`), subject color, `source` (imported/manual), `edited_manually`, audit timestamps | Plaintext, so the owner can inspect schedules by date in the database |
+| Agenda item: title, type, location, teacher, class content, notes | Encrypted |
+| Cronograma PDF bytes and original file name | Encrypted |
+| Profile photo bytes | Encrypted |
+| Member first name, surname, email | Plaintext (email is needed to look up accounts at sign-in); still personal data, so never log it |
+| Password | Argon2id hash, never encrypted-and-recoverable |
+| Invitation and password-reset tokens | Stored only as hashes |
+
+Mechanism:
+
+- Use PostgreSQL's `pgcrypto` extension (`pgp_sym_encrypt` / `pgp_sym_decrypt`, AES-256) so the same data can be decrypted by the API and by the owner's database function. The API passes the key as a bound query parameter; the key is read from the `FIELD_ENCRYPTION_KEY` environment variable and is never stored in the database, in migrations, or in source control.
+- Each encrypted column stores the ciphertext plus a `key_version` column, so the key can be rotated: add the new key as `FIELD_ENCRYPTION_KEY` with `FIELD_ENCRYPTION_KEY_VERSION` incremented, keep the previous key as `FIELD_ENCRYPTION_KEY_PREVIOUS` until a re-encryption job has rewritten every row, then remove it.
+- Owner read access: a function in a separate `admin` schema, for example `admin.agenda_items_readable(p_key text)`, returns agenda items with decrypted columns. `EXECUTE` is granted only to a dedicated database role used by the owner (never to the API role), the function is `SECURITY INVOKER`, and it returns nothing useful without the correct key. Do not create a plain view that decrypts, because a view would need the key stored in the database.
+- Because the key travels inside the query, disable statement logging for the owner role (`log_statement = 'none'`, no `pg_stat_statements` capture of parameters) and never paste the key into shared scripts, tickets, or chat. Keep a copy of the key in the owner's password manager: losing it makes the encrypted data unrecoverable.
+- Encrypted columns cannot be searched or sorted by the database; the MVP only needs date-range queries, which use the plaintext timestamps.
+
+### Time zones
+
+- Store every instant as `timestamptz` (UTC). MVP: the API and client format dates in `America/Fortaleza`, from a single configuration value (`APP_DEFAULT_TIME_ZONE`), not hard-coded across the code.
+- Later versions add `users.time_zone` (IANA name, default `America/Fortaleza`), chosen in Perfil; each user sees every agenda in their own time zone. Design the date-formatting layer so this is a data change, not a rewrite.
+- PDF import converts the cronograma's local times using the issuing institution's time zone (`America/Fortaleza` for the MVP), independent of the viewer.
+
+### Email delivery
+
+The provider is not chosen yet. The integration is built so the owner only has to fill in keys:
+
+- The API depends on an `EmailSender` interface (`send({ to, subject, html, text })`), with two adapters: `console` (development and tests: logs a redacted summary, never the full body with links in production) and `smtp` (works with most providers, such as Brevo, Resend, Amazon SES or Mailgun, through their SMTP credentials). A provider-specific HTTP adapter can be added later behind the same interface.
+- Emails in the MVP (pt-BR, each with HTML and plain-text versions): household invitation, password reset, and "sua senha foi alterada" (security notice after a reset). Layout and copy: `docs/design/email/README.md`; rules in `docs/DESIGN_SYSTEM.md` › "Email templates".
+- Links in emails use `APP_PUBLIC_URL`; tokens expire and are single-use (see "Authentication, Authorization, and Invitations"). No tracking pixels or click tracking.
+- Before production: confirm the provider's data-processing terms and region (LGPD), configure SPF, DKIM, and DMARC for the sending domain, and get approval for any cost.
+
+### Configuration
+
+Runtime configuration comes from environment variables in the hosting platform's secret manager. The repository root has a sanitized `.env.example` with these names and no values (`.env` files are git-ignored):
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string (API role) |
+| `APP_PUBLIC_URL` | Public URL of the PWA, used in email links |
+| `APP_DEFAULT_TIME_ZONE` | `America/Fortaleza` for the MVP |
+| `SESSION_SECRET` | Signing secret for session cookies |
+| `FIELD_ENCRYPTION_KEY` | Current field-encryption key (32 random bytes, base64) |
+| `FIELD_ENCRYPTION_KEY_VERSION` | Integer version of the current key |
+| `FIELD_ENCRYPTION_KEY_PREVIOUS` | Previous key, only during rotation |
+| `EMAIL_TRANSPORT` | `console` or `smtp` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP credentials from the chosen provider |
+| `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Sender, for example `nao-responda@<domain>` and `Domiyo` |
 
 ## Authentication, Authorization, and Invitations
 
@@ -94,7 +149,7 @@ Keep API persistence models separate from client-facing contracts. Do not create
 
 - **Railway:** Proposed hosting for API and PostgreSQL; verify cost, region, backup, and recovery capabilities before launch.
 - **Cloudflare:** Proposed static PWA hosting and DNS/CDN; do not cache authenticated API responses publicly.
-- **Email delivery:** Required for email invitations and likely password recovery; provider and data-processing terms are not selected.
+- **Email delivery:** Required for email invitations and password recovery (both in the MVP); provider and data-processing terms are not selected. See "Email delivery".
 - **Design handoff:** The product owner will create screens and provide design decisions as documents. Agents may read and write Figma designs through the Figwright MCP (Figwright plugin open in Figma); no other MCP integration, including the official Figma MCP, is approved.
 - No analytics, error-monitoring vendor, payments, or push provider is selected. Any new processor requires approval and a privacy/security review.
 
@@ -119,10 +174,10 @@ Keep API persistence models separate from client-facing contracts. Do not create
 ## Open Architecture Decisions
 
 - Exact monorepo/tooling setup, ORM, database migration library, and API contract format.
-- Session/cookie strategy, password recovery flow, and email delivery provider.
+- Session/cookie strategy (password recovery is in the MVP; its rules are in `PRD.md`) and email delivery provider.
 - Railway/Cloudflare account topology, production domains, database region, pricing, backup retention, and restore objectives.
-- Household time-zone representation and exact recurrence materialization strategy.
-- Field-level encryption scope, key manager, rotation, and recovery procedure.
+- Exact recurrence materialization strategy (time zones are decided above).
+- Secret manager and backup location for the field-encryption key (scope and mechanism are decided above).
 - CI provider, production observability, and deployment/rollback workflow.
 - Data hosting region and LGPD international-transfer review, given Railway's available regions.
 - Data handling for a departing member's tasks, bills, and recipes (shared decision with `PRD.md`).

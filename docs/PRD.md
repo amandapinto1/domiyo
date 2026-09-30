@@ -29,13 +29,28 @@ Let a household member quickly understand today's household responsibilities, th
 
 The MVP's first two features, in priority order, are the shared agenda/calendar and PDF cronograma import described immediately below; the remaining V1 features build on that foundation.
 
+### MVP scope
+
+Decided by the product owner on 2026-09-29. The MVP includes only:
+
+- Access: sign up, log in, and forgot/reset password (see "Household and access").
+- Household: create a household, invite members by email and link, accept an invitation, leave a household, and remove a member.
+- Shared agenda and PDF cronograma import (see below), including manual creation, editing, and deletion of agenda items. Deleting an agenda item always asks for confirmation first (decided by the product owner on 2026-09-30).
+- Profile and the home screen ("Início") limited to the logged-in user's agenda.
+
+The remaining V1 features (household tasks, bills, meals and recipes, the shared grocery list, and task-assignment notifications) are out of the MVP and follow it. The home dashboard sections for tasks, bills, and meals arrive with those features.
+
 ### Shared agenda and PDF cronograma import
 
 - A household can have multiple named agendas (for example, "Agenda de Amanda", "Agenda de Andréa"), grouped under one household. An agenda is a filterable collection of calendar items, distinct from household membership.
+  - MVP: each household member gets exactly one agenda, created automatically when they join and named after them ("Agenda de {primeiro nome}"). Users cannot create, rename, or delete agendas in the MVP (decided by the product owner on 2026-09-29).
+  - Separately named agendas arrive with the external calendar integrations (Google Calendar and Microsoft Outlook; see "Out of Scope"), when an agenda can come from a connected calendar instead of a member.
 - The calendar view lets a user select one or more agendas to filter what is shown, through a multiselect with a "Todas as agendas" option that selects every agenda. When every agenda is selected, the field reads "Todas as agendas". At least one agenda must stay selected; the last selected agenda cannot be deselected (decided by the product owner on 2026-09-29).
 - The home screen ("Início") shows only the logged-in user's own agenda, with no agenda filter (decided by the product owner on 2026-09-29).
-- Each calendar item belongs to exactly one agenda (its owner). Ownership is not shown via item color, because color already encodes discipline/subject on the calendar. Instead, show a small badge/dot in the item's top-right corner (or an equivalent tag) identifying which user's agenda the item belongs to.
+- Each calendar item belongs to exactly one agenda (its owner). Ownership is not shown via item color, because color already encodes discipline/subject on the calendar. Instead, each item shows a small round avatar of the owner: the profile photo, or, when there is no photo, the initials of the first name and surname (for example, "AP", "AC"). The avatar has no per-user color; it uses a neutral style so it never competes with the subject color. It needs an accessible name (the owner's name) and a name tooltip on hover (decided by the product owner on 2026-09-29). Profile photos are new personal data: classify them in the sensitive-data inventory, with storage and deletion rules, before implementation.
 - A household member can import a class schedule ("cronograma") PDF into an agenda. The supported PDF format is organized by week and time slot; the file does not include a year.
+  - Subject colors come from the legend of the imported PDF: each subject keeps the color the PDF uses for it. They are data stored with the import, not fixed design tokens (decided by the product owner on 2026-09-30).
+  - The imported PDF file is kept, and the Agenda screen offers it for viewing and download ("Ver cronograma") whenever an agenda in view has an imported PDF. Re-importing replaces the stored file for that agenda (decided by the product owner on 2026-09-30). The stored PDF is encrypted (see "Privacy and security").
   - Year assignment: parsing starts from the current year for the first week found. Whenever a later week's month is earlier than the previous week's month (a December-to-January crossing), that week and every following week roll over to the next year.
 - Before attaching a parsed PDF to an agenda, show a confirmation screen: "tem certeza que deseja anexar o pdf {titulo} à agenda?" ("are you sure you want to attach the PDF {titulo} to the agenda?"). Nothing is written to the agenda until the user confirms.
 - Re-uploading a new PDF for an agenda diffs it against the previously imported PDF (items added, removed, or moved) and applies the result automatically, without a per-item review step, since the item count makes manual review impractical.
@@ -45,10 +60,12 @@ The MVP's first two features, in priority order, are the shared agenda/calendar 
 ### Household and access
 
 - Users authenticate with email and password.
+- Users can reset a forgotten password through a reset link sent by email. The link must expire, be single-use, and the request must not reveal whether an email is registered. Reset requests are rate-limited. Password reset is part of the MVP (decided by the product owner on 2026-09-29). Opening an expired or already-used reset link shows a dedicated screen that explains it and offers to send a new link (decided by the product owner on 2026-09-30).
 - A user can create or join a shared household.
-- Household members can invite others by email and by shareable invitation link. Invitation links must expire, be revocable, and be single-use.
+- Household members can invite others by email and by shareable invitation link. Invitation links must expire, be revocable, and be single-use. Opening an expired, used, or revoked invitation link shows a dedicated screen that explains it and tells the person to ask for a new invitation, without revealing household details (decided by the product owner on 2026-09-30).
 - Household data is visible only to authorized members of that household.
-- A member can leave a household, and remaining members can remove a member who is no longer part of it. What happens to that member's assigned tasks, bills, and recipes afterward is an open product decision.
+- A member can leave a household, and remaining members can remove a member who is no longer part of it. The "Sair do household" action lives in Perfil > Household card, and both leaving and removing ask for confirmation. When a member leaves or is removed, their agenda and all of its items are deleted (decided by the product owner on 2026-09-30); the confirmation dialogs must say so. What happens to that member's assigned tasks, bills, and recipes afterward is still an open product decision. The deletion rule must be reflected in the data retention and deletion policy before implementation.
+- Interface copy uses the word "household" (not "casa") for the shared group (decided by the product owner on 2026-09-30).
 
 ### Home dashboard and daily agenda
 
@@ -110,7 +127,7 @@ The MVP's first two features, in priority order, are the shared agenda/calendar 
 ### Functional
 
 - All household resources and actions must be scoped to the active household and authorized membership.
-- Dates and recurrence must behave consistently in the household's configured time zone.
+- Dates and recurrence must behave consistently. Store instants in UTC. MVP: every date and time is shown in `America/Fortaleza`. Later versions: each user picks their own time zone in Perfil (default `America/Fortaleza`) and sees every agenda in it, so a member who is traveling can tell what time it is for the other member before getting in touch; PDF imports are still interpreted in the time zone of the institution that issued the cronograma (decided by the product owner on 2026-09-30).
 - State changes such as marking a task complete, bill paid, or grocery item purchased must be reflected in shared views.
 - Avoid duplicate generated occurrences when recurring tasks or bills are processed more than once.
 
@@ -132,7 +149,11 @@ The MVP's first two features, in priority order, are the shared agenda/calendar 
 
 - Design and operate the product with Brazil's LGPD in mind; obtain appropriate legal review before production. This document is not a legal compliance determination.
 - Use least-privilege access, secure password hashing, household-level authorization, and protections against cross-household data access.
-- Encrypt data in transit and at rest. A sensitive-data inventory (not yet produced; see Open Product Decisions) must identify which fields require field-level encryption; keep encryption keys separate from the database and never commit or log secrets.
+- Encrypt data in transit and at rest. Sensitive-data inventory (decided by the product owner on 2026-09-30; technical design in `ARCHITECTURE.md` › "Sensitive data and field-level encryption"):
+  - Encrypted at field level: agenda item content (title, type, location, teacher, class content, notes), the stored cronograma PDF and its file name, and profile photos.
+  - Kept readable: agenda item dates and times, subject color, and flags such as "imported" or "edited manually", so the owner can inspect schedules in the database; member names and email addresses (email is needed to sign in).
+  - The owner can read decrypted agenda data through a restricted database function that requires the encryption key at call time; the key is never stored in the database.
+  - Keep encryption keys separate from the database and never commit or log secrets.
 - If production hosting stores or processes data outside Brazil, review LGPD's international data-transfer requirements before launch rather than assuming in-region hosting is available.
 - Define retention, deletion, export, and incident-response procedures before production launch.
 
@@ -150,10 +171,10 @@ Review the targets after the first usability sessions; do not add third-party an
 
 ## Out of Scope
 
-- Full personal schedules/agenda beyond the shared calendar (for example, personal appointments unrelated to the household) and external calendar integrations (planned for V2). PDF cronograma import into the shared agenda is in V1 (see "Shared agenda and PDF cronograma import" above); this does not exclude the V1 task calendar and daily household agenda described elsewhere in this document.
+- Full personal schedules/agenda beyond the shared calendar (for example, personal appointments unrelated to the household) and external calendar integrations — Google Calendar and Microsoft Outlook — planned for V2. With these integrations, agendas can have their own names (for example, a connected calendar) separate from the member's automatic agenda; sync direction, conflict handling, OAuth consent, and the privacy review of these new data processors are to be decided then. PDF cronograma import into the shared agenda is in V1 (see "Shared agenda and PDF cronograma import" above); this does not exclude the V1 task calendar and daily household agenda described elsewhere in this document.
 - Browser/device push notifications (V2).
 - Native iOS/Android clients; V1 is a responsive PWA.
-- Bill payment execution, bank integrations, financial advice, or receipt/document storage.
+- Bill payment execution, bank integrations, financial advice, or receipt/document storage (the only stored documents are imported cronograma PDFs and profile photos).
 - Automatic pantry inventory, recipe recommendations, or automatic ingredient purchasing.
 - Multiple-household membership for one user, unless a concrete need is confirmed.
 - Paid integrations or analytics services without explicit approval.
@@ -164,10 +185,8 @@ Review the targets after the first usability sessions; do not add third-party an
 - Recipe ingredient quantities/units and duplicate consolidation in the grocery list.
 - Grocery-list lifecycle across weeks and handling/removal of purchased items.
 - Notification read state, retention, and whether any events beyond task assignments notify members.
-- Household time-zone selection and invitation email delivery provider.
-- Final visual identity, color palette, typefaces, and design tokens; the product owner will provide the screens and decisions as project documents (Figma screens may be authored with agents through the Figwright MCP).
+- Email delivery provider. The integration is planned to be provider-agnostic (`ARCHITECTURE.md` › "Email delivery"); only the provider and its keys are missing. Blocks sending invitations by email and password-reset emails in the MVP.
 - Baseline and target values for success metrics after initial usability testing.
-- What happens to a departing member's tasks, bills, and recipes when they leave or are removed from a household.
+- What happens to a departing member's tasks, bills, and recipes when they leave or are removed from a household (not needed for the MVP: a departing member's agenda is deleted).
 - Whether task completion is restricted to the assignee or open to any household member.
-- Producing the sensitive-data inventory that determines which fields require field-level encryption (referenced above and in `ARCHITECTURE.md`).
-- Data hosting region and whether LGPD international-transfer safeguards are needed, given available provider regions.
+- Data hosting region and whether LGPD international-transfer safeguards are needed, given available provider regions (needed before production, not before development).
