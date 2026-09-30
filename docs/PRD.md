@@ -22,7 +22,7 @@ Let a household member quickly understand today's household responsibilities, th
 
 - Initial users: two cohabiting adults coordinating a household.
 - Supported household model: one or more members per household, with invitations for additional members.
-- Initial locale: Brazilian Portuguese (`pt-BR`) and Brazilian real (`BRL`). The household time zone must be configurable or explicitly selected; do not assume every user is in the same Brazilian time zone.
+- Initial locale: Brazilian Portuguese (`pt-BR`) and Brazilian real (`BRL`). Time zones follow "Requirements" › "Functional": `America/Fortaleza` in the MVP, a per-user time zone later.
 - The product is not limited to students or couples.
 
 ## Core Features (V1)
@@ -33,8 +33,8 @@ The MVP's first two features, in priority order, are the shared agenda/calendar 
 
 Decided by the product owner on 2026-09-29. The MVP includes only:
 
-- Access: sign up, log in, and forgot/reset password (see "Household and access").
-- Household: create a household, invite members by email and link, accept an invitation, leave a household, and remove a member.
+- Access: sign up with email confirmation, log in, and forgot/reset password (see "Household and access").
+- Household: first-access screen to create a household, invite members by email and link, accept or decline an invitation, leave a household, and remove a member.
 - Shared agenda and PDF cronograma import (see below), including manual creation, editing, and deletion of agenda items. Deleting an agenda item always asks for confirmation first (decided by the product owner on 2026-09-30).
 - Profile and the home screen ("Início") limited to the logged-in user's agenda.
 
@@ -47,12 +47,13 @@ The remaining V1 features (household tasks, bills, meals and recipes, the shared
   - Separately named agendas arrive with the external calendar integrations (Google Calendar and Microsoft Outlook; see "Out of Scope"), when an agenda can come from a connected calendar instead of a member.
 - The calendar view lets a user select one or more agendas to filter what is shown, through a multiselect with a "Todas as agendas" option that selects every agenda. When every agenda is selected, the field reads "Todas as agendas". At least one agenda must stay selected; the last selected agenda cannot be deselected (decided by the product owner on 2026-09-29).
 - The home screen ("Início") shows only the logged-in user's own agenda, with no agenda filter (decided by the product owner on 2026-09-29).
-- Each calendar item belongs to exactly one agenda (its owner). Ownership is not shown via item color, because color already encodes discipline/subject on the calendar. Instead, each item shows a small round avatar of the owner: the profile photo, or, when there is no photo, the initials of the first name and surname (for example, "AP", "AC"). The avatar has no per-user color; it uses a neutral style so it never competes with the subject color. It needs an accessible name (the owner's name) and a name tooltip on hover (decided by the product owner on 2026-09-29). Profile photos are new personal data: classify them in the sensitive-data inventory, with storage and deletion rules, before implementation.
-- A household member can import a class schedule ("cronograma") PDF into an agenda. The supported PDF format is organized by week and time slot; the file does not include a year.
+- Each calendar item belongs to exactly one agenda (its owner). Ownership is not shown via item color, because color already encodes discipline/subject on the calendar. Instead, each item shows a small round avatar of the owner: the profile photo, or, when there is no photo, the initials of the first name and surname (for example, "AP", "AC"). The avatar has no per-user color; it uses a neutral style so it never competes with the subject color. It needs an accessible name (the owner's name) and a name tooltip on hover (decided by the product owner on 2026-09-29). Profile photos are classified as sensitive and stored encrypted (see "Privacy and security").
+- A household member can import a class schedule ("cronograma") PDF of up to 10 MB into an agenda. The supported PDF format is organized by week and time slot; the file does not include a year.
+  - The PDF is read by the Anthropic Claude API, which returns the schedule as structured data; Domiyo validates it before showing the confirmation screen (decided by the product owner on 2026-09-30). The cronograma is a public document published on the school's website; only the file is sent, with no user data.
   - Subject colors come from the legend of the imported PDF: each subject keeps the color the PDF uses for it. They are data stored with the import, not fixed design tokens (decided by the product owner on 2026-09-30).
   - The imported PDF file is kept, and the Agenda screen offers it for viewing and download ("Ver cronograma") whenever an agenda in view has an imported PDF. Re-importing replaces the stored file for that agenda (decided by the product owner on 2026-09-30). The stored PDF is encrypted (see "Privacy and security").
   - Year assignment: parsing starts from the current year for the first week found. Whenever a later week's month is earlier than the previous week's month (a December-to-January crossing), that week and every following week roll over to the next year.
-- Before attaching a parsed PDF to an agenda, show a confirmation screen: "tem certeza que deseja anexar o pdf {titulo} à agenda?" ("are you sure you want to attach the PDF {titulo} to the agenda?"). Nothing is written to the agenda until the user confirms.
+- Before attaching a parsed PDF to an agenda, show a confirmation screen: "tem certeza que deseja anexar o pdf {titulo} à agenda?" ("are you sure you want to attach the PDF {titulo} to the agenda?"). Nothing is written to the agenda until the user confirms. An unconfirmed import expires after 3 days and must be uploaded again (decided by the product owner on 2026-09-30).
 - Re-uploading a new PDF for an agenda diffs it against the previously imported PDF (items added, removed, or moved) and applies the result automatically, without a per-item review step, since the item count makes manual review impractical.
   - Exception: if a previously imported item was manually edited by a user after import, overwriting it on re-import requires explicit user confirmation instead of being applied automatically.
   - Every PDF-imported item tracks an "edited manually" flag/state, set when a user edits that item after import, so a future re-import knows whether the automatic-overwrite exception applies.
@@ -60,11 +61,16 @@ The remaining V1 features (household tasks, bills, meals and recipes, the shared
 ### Household and access
 
 - Users authenticate with email and password.
+- Sign-up requires email confirmation: the user cannot sign in until they open the confirmation link (decided by the product owner on 2026-09-30).
 - Users can reset a forgotten password through a reset link sent by email. The link must expire, be single-use, and the request must not reveal whether an email is registered. Reset requests are rate-limited. Password reset is part of the MVP (decided by the product owner on 2026-09-29). Opening an expired or already-used reset link shows a dedicated screen that explains it and offers to send a new link (decided by the product owner on 2026-09-30).
-- A user can create or join a shared household.
+- A user can create or join a shared household. MVP: each user belongs to at most one household, so a person who already belongs to a household cannot join another: accepting the invitation (by email or link) is blocked (decided by the product owner on 2026-09-30).
+  - The invited person sees a screen explaining that they already belong to a household, with the option to decline the invitation ("Recusar convite").
+  - The inviter is never told why. If the invited person declines, the inviter's invitation screen shows "Recusado", with no reason; otherwise the invitation stays pending until it expires (decided by the product owner on 2026-09-30). This keeps the inviter from learning whether that person uses Domiyo or belongs to another household. Later versions allow several households per user (for example, rental properties or businesses) with different roles in each (decided by the product owner on 2026-09-30).
+- A signed-in user without a household (new account without an invitation, or after leaving a household) sees the first-access screen ("Primeiro acesso"), which creates a household (decided by the product owner on 2026-09-30).
 - Household members can invite others by email and by shareable invitation link. Invitation links must expire, be revocable, and be single-use. Opening an expired, used, or revoked invitation link shows a dedicated screen that explains it and tells the person to ask for a new invitation, without revealing household details (decided by the product owner on 2026-09-30).
+- When an invited person has signed up but not yet confirmed their email, the inviter's invitation screen shows them as pending email confirmation ("Pendente de confirmação de e-mail"). They become a member once the email is confirmed (decided by the product owner on 2026-09-30).
 - Household data is visible only to authorized members of that household.
-- A member can leave a household, and remaining members can remove a member who is no longer part of it. The "Sair do household" action lives in Perfil > Household card, and both leaving and removing ask for confirmation. When a member leaves or is removed, their agenda and all of its items are deleted (decided by the product owner on 2026-09-30); the confirmation dialogs must say so. What happens to that member's assigned tasks, bills, and recipes afterward is still an open product decision. The deletion rule must be reflected in the data retention and deletion policy before implementation.
+- A member can leave a household, and remaining members can remove a member who is no longer part of it. The "Sair do household" action lives in Perfil > Household card, and both leaving and removing ask for confirmation. When a member leaves or is removed, their agenda and all of its items are deleted (decided by the product owner on 2026-09-30); the confirmation dialogs must say so. When the last member leaves, the household and all of its data are deleted permanently and cannot be recovered; that confirmation dialog must say so too (decided by the product owner on 2026-09-30). What happens to that member's assigned tasks, bills, and recipes afterward is still an open product decision. The deletion rule must be reflected in the data retention and deletion policy before implementation.
 - Interface copy uses the word "household" (not "casa") for the shared group (decided by the product owner on 2026-09-30).
 
 ### Home dashboard and daily agenda
@@ -153,6 +159,7 @@ The remaining V1 features (household tasks, bills, meals and recipes, the shared
   - Encrypted at field level: agenda item content (title, type, location, teacher, class content, notes), the stored cronograma PDF and its file name, and profile photos.
   - Kept readable: agenda item dates and times, subject color, and flags such as "imported" or "edited manually", so the owner can inspect schedules in the database; member names and email addresses (email is needed to sign in).
   - The owner can read decrypted agenda data through a restricted database function that requires the encryption key at call time; the key is never stored in the database.
+  - Cronograma PDFs are sent to the Anthropic Claude API to be read. The cronograma is public (published on the school's website) and only the file is sent (no name, email, or file name). Before production, confirm Anthropic's data-retention terms and cost.
   - Keep encryption keys separate from the database and never commit or log secrets.
 - If production hosting stores or processes data outside Brazil, review LGPD's international data-transfer requirements before launch rather than assuming in-region hosting is available.
 - Define retention, deletion, export, and incident-response procedures before production launch.
@@ -176,7 +183,7 @@ Review the targets after the first usability sessions; do not add third-party an
 - Native iOS/Android clients; V1 is a responsive PWA.
 - Bill payment execution, bank integrations, financial advice, or receipt/document storage (the only stored documents are imported cronograma PDFs and profile photos).
 - Automatic pantry inventory, recipe recommendations, or automatic ingredient purchasing.
-- Multiple-household membership for one user, unless a concrete need is confirmed.
+- Multiple households per user and per-household roles (planned for a later version; the MVP allows one household per user).
 - Paid integrations or analytics services without explicit approval.
 
 ## Open Product Decisions
@@ -185,7 +192,7 @@ Review the targets after the first usability sessions; do not add third-party an
 - Recipe ingredient quantities/units and duplicate consolidation in the grocery list.
 - Grocery-list lifecycle across weeks and handling/removal of purchased items.
 - Notification read state, retention, and whether any events beyond task assignments notify members.
-- Email delivery provider. The integration is planned to be provider-agnostic (`ARCHITECTURE.md` › "Email delivery"); only the provider and its keys are missing. Blocks sending invitations by email and password-reset emails in the MVP.
+- Email delivery provider. The integration is planned to be provider-agnostic (`ARCHITECTURE.md` › "Email delivery"); only the provider and its keys are missing. Blocks sending email confirmation, invitations by email, and password-reset emails in the MVP.
 - Baseline and target values for success metrics after initial usability testing.
 - What happens to a departing member's tasks, bills, and recipes when they leave or are removed from a household (not needed for the MVP: a departing member's agenda is deleted).
 - Whether task completion is restricted to the assignee or open to any household member.

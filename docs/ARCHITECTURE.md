@@ -4,7 +4,7 @@
 
 ## System Overview
 
-Domiyo is an online-first Progressive Web App built as a single full-stack Next.js application (App Router, TypeScript) backed by PostgreSQL. Decided by the product owner on 2026-09-30, replacing the earlier React client + NestJS API split. Server Components render data on the server, Server Actions handle mutations, and Route Handlers serve the few endpoints that need raw HTTP (cronograma PDF download, authentication, health check). The server is the authority for authentication, household membership, validation, and authorization; the browser must not be trusted to enforce access boundaries.
+Domiyo is an online-first Progressive Web App built as a single full-stack Next.js application (App Router, TypeScript) backed by PostgreSQL. Decided by the product owner on 2026-09-30, replacing the earlier React client + NestJS API split. Server Components render data on the server, Server Actions handle mutations, and Route Handlers serve the few endpoints that need raw HTTP (cronograma PDF upload and download, authentication, health check). The server is the authority for authentication, household membership, validation, and authorization; the browser must not be trusted to enforce access boundaries.
 
 ```text
 Browser / installed PWA
@@ -32,6 +32,8 @@ The PWA may cache its static application shell for installation and faster repea
 | UI | Tailwind CSS with the tokens from `docs/DESIGN_SYSTEM.md`; shadcn/ui on Radix primitives, re-themed with those tokens (never the default palette); Lucide icons; forms with React Hook Form + Zod | Approved (`docs/CONVENTIONS.md`) |
 | Testing | Vitest + React Testing Library for unit and integration tests; Playwright for end-to-end tests | Approved 2026-09-30 |
 | Package management | `pnpm`, single package (no monorepo) | Approved direction |
+| Local development | Docker Compose runs PostgreSQL (with `pgcrypto`) for development and tests, with separate databases; the Next.js app runs on the host with `pnpm` | Approved 2026-09-30 |
+| Cronograma reading | Anthropic Claude API reads the uploaded PDF (native PDF input, no PDF parsing library) and returns structured items; our code validates them and applies year assignment, time zones, and the re-import diff. See "Cronograma upload and reading" | Approved by the product owner 2026-09-30 (paid API and new data processor); confirm terms and cost before production |
 | Deployment | Railway: one Next.js service (`next start`, Node.js) plus managed PostgreSQL | Approved 2026-09-30; confirm domains, pricing, and data region before launch |
 | Email delivery | Provider-agnostic adapter (SMTP first, console in development); see "Email delivery" | Planned; provider not selected, no paid provider without approval |
 | File storage | Cronograma PDFs and profile photos stored encrypted in PostgreSQL (`bytea`) for the MVP; see "Sensitive data and field-level encryption" | Planned; avoids adding a storage service |
@@ -66,12 +68,12 @@ src/
         _components/       Route-only components
         _actions/          Route-only Server Actions ("use server")
         _data-access/      Route-only reads (server-only)
-    api/                   Route Handlers (auth, cronograma PDF download, health)
+    api/                   Route Handlers (auth, cronograma PDF upload and download, health)
   components/              Shared UI (design-system components, re-themed shadcn/ui)
   server/                  Domain and application logic shared across routes (server-only)
-    auth/                  Better Auth setup, requireSession, requireHouseholdMember
+    auth/                  Better Auth setup, requireSession, requireHouseholdMember, requireCurrentMembership
     crypto/                Field-encryption helpers (pgcrypto calls)
-    cronograma/            PDF parsing and diff/import logic
+    cronograma/            Claude API extraction, output validation, year assignment, diff/import logic
     email/                 EmailSender interface and adapters
   db/                      Drizzle schema and client (server-only)
   lib/                     Framework-agnostic utilities (date formatting in the app time zone, etc.)
@@ -89,13 +91,15 @@ Keep database models out of client components: data-access functions return plai
 3. Every household-owned read and write is scoped and authorized server-side. Resource identifiers supplied by the client never substitute for membership checks.
 4. Changes to shared tasks, bills, meals, recipes, ingredients, grocery items, and notifications are persisted transactionally where related state must remain consistent.
 5. Task assignment by another member creates an in-app notification. V1 does not send push notifications.
-6. Recurring tasks and bills create due occurrences idempotently so retries cannot create duplicate occurrences. The job/scheduler mechanism is an implementation decision; prefer a database-backed approach initially unless measured needs justify a queue.
+6. Recurring tasks and bills (after the MVP) create due occurrences idempotently so retries cannot create duplicate occurrences. Next.js has no scheduler: use a Railway cron job that runs a server-side script against the database. The MVP has no scheduled jobs.
 
 ## Database and Storage
 
 - PostgreSQL is the system of record for accounts, households, memberships, invitations, tasks/occurrences, bills/occurrences, meal plans, recipes, ingredient catalog entries, grocery items, and in-app notifications.
 - Use UUIDs or other non-enumerable public identifiers for every resource exposed in URLs, forms, or Server Action arguments. Apply foreign keys, uniqueness constraints, and indexes that reflect household ownership and common date/status queries.
 - Model household ownership explicitly and make authorization-compatible query patterns easy to audit. Consider including household scope in relevant uniqueness constraints.
+- Membership is a `household_members` table (`user_id`, `household_id`, `role`), so a user can belong to several households with different roles in later versions (for example, rental properties or businesses). MVP: a unique constraint on `user_id` limits each user to one household, and every member has the role `member`; a later migration drops the constraint. Always pass `householdId` explicitly through data access and actions instead of assuming "the" household.
+- When the last member leaves a household, the household and all of its data are deleted permanently; it cannot be recovered (product owner decision, 2026-09-30).
 - All schema changes must be versioned migrations, reviewed, and covered by tests. Preserve a tested backup and restore path before production launch.
 - Encrypt database storage at rest and all network connections in transit. Fields classified as sensitive also use field-level encryption (see below). Encryption keys are managed separately from database contents and source code; define key rotation and recovery procedures before production launch.
 - The only stored files are imported cronograma PDFs (one per agenda, replaced on re-import) and profile photos. For the MVP they live encrypted in PostgreSQL (`bytea`) with size limits: PDF up to 10 MB, photo resized to at most 512×512 px and 1 MB before encryption. Revisit object storage only if measured size or cost requires it; any storage service needs approval.
@@ -117,11 +121,33 @@ Decided by the product owner on 2026-09-30. Treat this as the technical plan for
 
 Mechanism:
 
-- Use PostgreSQL's `pgcrypto` extension (`pgp_sym_encrypt` / `pgp_sym_decrypt`, AES-256) so the same data can be decrypted by the server and by the owner's database function. The server passes the key as a bound query parameter; the key is read from the `FIELD_ENCRYPTION_KEY` environment variable and is never stored in the database, in migrations, or in source control.
+- Use PostgreSQL's `pgcrypto` extension with AES-256 so the same data can be decrypted by the server and by the owner's database function: `pgp_sym_encrypt` / `pgp_sym_decrypt` for text columns, `pgp_sym_encrypt_bytea` / `pgp_sym_decrypt_bytea` for the PDF and photo bytes. The server passes the key as a bound query parameter; the key is read from the `FIELD_ENCRYPTION_KEY` environment variable and is never stored in the database, in migrations, or in source control.
 - Each encrypted column stores the ciphertext plus a `key_version` column, so the key can be rotated: add the new key as `FIELD_ENCRYPTION_KEY` with `FIELD_ENCRYPTION_KEY_VERSION` incremented, keep the previous key as `FIELD_ENCRYPTION_KEY_PREVIOUS` until a re-encryption job has rewritten every row, then remove it.
 - Owner read access: a function in a separate `admin` schema, for example `admin.agenda_items_readable(p_key text)`, returns agenda items with decrypted columns. `EXECUTE` is granted only to a dedicated database role used by the owner (never to the application role), the function is `SECURITY INVOKER`, and it returns nothing useful without the correct key. Do not create a plain view that decrypts, because a view would need the key stored in the database.
-- Because the key travels inside the query, disable statement logging for the owner role (`log_statement = 'none'`, no `pg_stat_statements` capture of parameters) and never paste the key into shared scripts, tickets, or chat. Keep a copy of the key in the owner's password manager: losing it makes the encrypted data unrecoverable.
+- Because the key travels inside every encrypting or decrypting query, disable statement and parameter logging for both the application role and the owner role (`log_statement = 'none'`, `log_min_duration_statement = -1`, `log_parameter_max_length = 0`, `log_parameter_max_length_on_error = 0`, no `pg_stat_statements` capture of parameters), check that the managed PostgreSQL's own logs follow these settings, and never paste the key into shared scripts, tickets, or chat. Keep a copy of the key in the owner's password manager: losing it makes the encrypted data unrecoverable.
 - Encrypted columns cannot be searched or sorted by the database; the MVP only needs date-range queries, which use the plaintext timestamps.
+- Key rotation re-encryption runs as a one-off server-side script started by the owner, not a scheduled job.
+
+### Cronograma upload and reading
+
+Server Actions accept at most 1 MB per request by default, and raising `serverActions.bodySizeLimit` would raise it for every action. The PDF (up to 10 MB) therefore goes through a dedicated Route Handler:
+
+1. The browser sends `multipart/form-data` to `POST /api/agendas/[agendaId]/cronograma`. Keep this route out of any `proxy`/middleware matcher, because Next.js buffers bodies that pass through the proxy with its own size cap.
+2. The handler checks `Origin`, calls `requireSession()`, loads the agenda, and calls `requireHouseholdMember(agenda.householdId)`.
+3. It rejects a `Content-Length` over `MAX_PDF_BYTES` (10 MB) before reading, counts bytes while reading and aborts past the limit, and checks the `%PDF-` magic bytes.
+4. It sends the PDF to the Claude API (below) and stores a pending import: the encrypted PDF plus the validated items, linked to the agenda. A pending import is an upload the user has not confirmed yet. It expires after 3 days (product owner decision, 2026-09-30): expired imports cannot be confirmed, and each new upload deletes every expired pending import, so the MVP needs no scheduled job.
+5. The confirmation screen shows the parsed result. Confirming calls a small Server Action with the pending import id; only then are agenda items written (PRD: nothing is written before confirmation).
+
+Profile photos use the same pattern (Route Handler, size and magic-byte checks) before being resized.
+
+Reading with Claude:
+
+- No PDF parsing library is needed: the Messages API accepts the PDF as a base64 `document` block and reads both its text and its visual layout, including the legend colors. A 10 MB PDF is about 13.4 MB in base64, under the API request limit; confirm current request and page limits at scaffold time.
+- Request structured output (a tool/JSON schema) describing weeks, days (day and month, no year), times, subject, type, location, teacher, class content, and legend colors. Validate the response with Zod: times, `#RRGGBB` colors, required fields. Reject or ask the user to retry on invalid output.
+- Deterministic rules stay in our code, not in the prompt: year assignment (PRD), conversion from the institution's time zone to UTC, and the re-import diff.
+- Treat the PDF and the model output as untrusted data: the model gets no tools that act, its output is only used after validation, and instructions inside the PDF are ignored.
+- Send only the PDF bytes: no user name, email, or original file name. Set a request timeout. Never log the PDF, the prompt, or the model output. Pin the model version in configuration.
+- Tests mock the Claude API; CI and local tests never send real PDFs.
 
 ### Time zones
 
@@ -134,7 +160,7 @@ Mechanism:
 The provider is not chosen yet. The integration is built so the owner only has to fill in keys:
 
 - The server depends on an `EmailSender` interface (`send({ to, subject, html, text })`), with two adapters: `console` (development and tests: logs a redacted summary, never the full body with links in production) and `smtp` (works with most providers, such as Brevo, Resend, Amazon SES or Mailgun, through their SMTP credentials). A provider-specific HTTP adapter can be added later behind the same interface.
-- Emails in the MVP (pt-BR, each with HTML and plain-text versions): household invitation, password reset, and "sua senha foi alterada" (security notice after a reset). Layout and copy: `docs/design/email/README.md`; rules in `docs/DESIGN_SYSTEM.md` › "Email templates".
+- Emails in the MVP (pt-BR, each with HTML and plain-text versions): email confirmation at sign-up, household invitation, password reset, and "sua senha foi alterada" (security notice after a reset). Layout and copy: `docs/design/email/README.md` and the Figma page "E-mails"; rules in `docs/DESIGN_SYSTEM.md` › "Email templates".
 - Links in emails use `APP_PUBLIC_URL`; tokens expire and are single-use (see "Authentication, Authorization, and Invitations"). No tracking pixels or click tracking.
 - Before production: confirm the provider's data-processing terms and region (LGPD), configure SPF, DKIM, and DMARC for the sending domain, and get approval for any cost.
 
@@ -155,15 +181,23 @@ Runtime configuration comes from server-only environment variables (never prefix
 | `EMAIL_TRANSPORT` | `console` or `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP credentials from the chosen provider |
 | `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Sender, for example `nao-responda@<domain>` and `Domiyo` |
+| `ANTHROPIC_API_KEY` | Claude API key for cronograma reading |
+| `CRONOGRAMA_AI_MODEL` | Pinned Claude model id used for cronograma reading |
 
 ## Authentication, Authorization, and Invitations
 
 - **Library:** Better Auth with its Drizzle adapter, email and password only for the MVP. Its tables (users, sessions, accounts, verification) live in our PostgreSQL and are created through our versioned migrations. No external identity provider.
+- **Email confirmation:** required at sign-up (product owner decision, 2026-09-30). A user cannot sign in until the email is confirmed. Sign-up returns the same response whether or not the email is already registered, so it does not reveal accounts.
 - **Passwords:** configure Better Auth's password hashing to Argon2id (maintained library such as `@node-rs/argon2`); never store recoverable plaintext passwords. Minimum length and the reset flow follow `PRD.md`.
 - **Sessions:** database-backed sessions referenced by a cookie that is `HttpOnly`, `Secure` in production, `SameSite=Lax`, and host-only (no parent-domain cookie). Never persist credentials in browser storage. Revoke all sessions after a password reset.
 - **CSRF:** keep Next.js's built-in origin check for Server Actions and list only our own domains in `serverActions.allowedOrigins` if it is needed. Keep Better Auth's trusted-origin check on (`APP_PUBLIC_URL`). Any other mutating Route Handler must verify the `Origin` header and require the session.
 - **Authorization:** every Server Action, Route Handler, and data-access function calls `requireSession()` and, for household data, `requireHouseholdMember(householdId)` from `src/server/auth`. Middleware/proxy redirects are a convenience, never the authorization check. Resource identifiers from the client never substitute for membership checks. Begin with a simple member permission model unless product needs justify roles.
+  - `requireSession()` returns the session or redirects to sign-in.
+  - `requireHouseholdMember(householdId)` reads the session itself (never a user id from the caller) and returns `{ userId, householdId, role }`. If the user is not a member, it responds exactly as if the resource did not exist: pages and data access call `notFound()`, Route Handlers return 404, Server Actions return the generic not-found result. This never reveals whether another household's resource exists.
+  - `requireCurrentMembership()` resolves the household the user is working in. MVP: the user's only membership; without one, it redirects to the first-access screen (create a household). Later versions: the household the user selected.
+  - Wrap these helpers in React `cache()` so repeated calls in one request hit the database once.
 - **Invitation and reset tokens:** random, single-use, expiring, revocable, and stored only as hashes.
+- **One household per user (MVP):** accepting an invitation checks, inside the same transaction that creates the membership, that the user has no household; the unique constraint on `household_members.user_id` is the final guard. This covers both email and link invitations. A blocked acceptance changes nothing the inviter can see; the invited person may decline, which marks the invitation `declined` (shown to the inviter as "Recusado", with no reason). The inviter never learns whether the invited person has an account or another household.
 - **Rate limiting:** enable Better Auth's rate limiter with database storage (in-memory storage is lost on restart) for sign-in, sign-up, and password reset, and apply the same limiter to invitation creation and acceptance. Return non-enumerating responses where account discovery would create risk.
 - Email invitation delivery requires selecting and reviewing a provider. Shareable invitation links must remain usable without weakening expiry, revocation, and membership controls.
 
@@ -172,7 +206,8 @@ Runtime configuration comes from server-only environment variables (never prefix
 - **Railway:** Hosting for the Next.js application and PostgreSQL (approved 2026-09-30); verify cost, region, backup, and recovery capabilities before launch.
 - **Cloudflare:** Optional, DNS only if adopted; never cache authenticated pages or responses publicly.
 - **Better Auth:** an open-source library running inside our app, not an external service; it sends no data to third parties.
-- **Email delivery:** Required for email invitations and password recovery (both in the MVP); provider and data-processing terms are not selected. See "Email delivery".
+- **Anthropic (Claude API):** reads cronograma PDFs (approved 2026-09-30). It is a paid API and an external data processor. The cronograma is a public institutional document published on the school's website and we send only the file, with no user name, email, or file name, so no personal data about our users reaches Anthropic. Before production: confirm Anthropic's data-retention and training terms for API data and the expected cost.
+- **Email delivery:** Required for email confirmation, email invitations, and password recovery (all in the MVP); provider and data-processing terms are not selected. See "Email delivery".
 - **Design handoff:** The product owner will create screens and provide design decisions as documents. Agents may read and write Figma designs through the Figwright MCP (Figwright plugin open in Figma); no other MCP integration, including the official Figma MCP, is approved.
 - No analytics, error-monitoring vendor (Sentry deferred on 2026-09-30), payments, or push provider is selected. Any new processor requires approval and a privacy/security review.
 
@@ -199,7 +234,8 @@ Runtime configuration comes from server-only environment variables (never prefix
 - Exact library versions (pinned at scaffold time) and the PWA service-worker approach (hand-written or a maintained library such as Serwist).
 - Email delivery provider.
 - Railway account topology, production domains, database region, pricing, backup retention, and restore objectives.
-- Exact recurrence materialization strategy (time zones are decided above).
+- Exact recurrence materialization strategy after the MVP (Railway cron; time zones are decided above).
+- Claude model, prompt, and structured-output schema for cronograma reading; Anthropic retention terms and cost.
 - Secret manager and backup location for the field-encryption key (scope and mechanism are decided above).
 - CI provider and deployment/rollback workflow; external error monitoring (deferred, needs approval).
 - Data hosting region and LGPD international-transfer review, given Railway's available regions.

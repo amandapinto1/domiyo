@@ -4,14 +4,14 @@
 
 Domiyo is a household coordination PWA for bills, tasks, meals, recipes, and grocery shopping. Read [docs/PRD.md](docs/PRD.md), [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/CONVENTIONS.md](docs/CONVENTIONS.md) before changing product behavior, user-facing design, system structure, or code.
 
-The approved technical direction (product owner, 2026-09-30) is a single full-stack Next.js application (App Router, TypeScript) with PostgreSQL, Drizzle ORM and migrations, Better Auth for email-and-password authentication, Tailwind + shadcn/ui themed with our design tokens, Vitest + Playwright for tests, `pnpm`, and Railway for hosting. Treat this as the approved direction, not permission to introduce unreviewed infrastructure or paid services. Exact library versions and runnable commands are established when the application scaffold exists.
+The approved technical direction (product owner, 2026-09-30) is a single full-stack Next.js application (App Router, TypeScript) with PostgreSQL, Drizzle ORM and migrations, Better Auth for email-and-password authentication, Tailwind + shadcn/ui themed with our design tokens, Vitest + Playwright for tests, `pnpm`, Docker Compose for the local PostgreSQL, and Railway for hosting. The Anthropic Claude API is approved (2026-09-30) only for reading cronograma PDFs; confirm its data-retention terms and cost before production. Treat this as the approved direction, not permission to introduce unreviewed infrastructure or paid services. Exact library versions and runnable commands are established when the application scaffold exists.
 
 ## Before You Start
 
 - Read the product, design, architecture, and conventions documents above and any more-specific `AGENTS.md` or repository instructions that apply to the files being changed.
 - Inspect the current implementation and tests before editing. Do not assume the planned architecture has already been scaffolded.
 - Use the project's existing package scripts and conventions. Do not report a command as available unless it exists in the repository.
-- For UI work, inspect the design documents and screen references in `docs/design/`, along with current design tokens, before proposing visual changes. If the screen you are building has no reference there yet, say so instead of inventing a final visual design. The Figwright MCP (with the Figwright plugin open in Figma) is the approved way for agents to read and write Figma designs. Do not configure or use any other MCP server, including the official Figma MCP, without the product owner's approval.
+- For UI work, inspect the design documents and screen references in `docs/design/`, along with current design tokens, before proposing visual changes. If the screen you are building has no export there yet, read it in Figma through the Figwright MCP; if it is not in Figma either, say so instead of inventing a final visual design. The Figwright MCP (with the Figwright plugin open in Figma) is the approved way for agents to read and write Figma designs. Do not configure or use any other MCP server, including the official Figma MCP, without the product owner's approval.
 
 ## General Rules
 

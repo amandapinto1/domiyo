@@ -63,7 +63,7 @@ The sidebar can retract to an icon-only rail. Frame "Início / Desktop / Sidebar
 
 - A `lavender.100`, `radius.full` chevron button pins to the bottom of the sidebar (via a `FILL`-height spacer above it) and toggles the state; the chevron points left when expanded (retract) and right when collapsed (expand).
 - Collapsed, the wordmark hides and only the "Ponto + D" symbol remains, centered; nav items become icon-only, still centered, keeping the same active-state pill (`lavender.900` fill, `lime.500` icon).
-- The content area reflows to use the freed width (both columns are `FILL`/fixed-680, not pinned to the sidebar's width), so collapsing is a live layout change, not an overlay.
+- The content area reflows to use the freed width (the agenda column keeps its fixed 600px width and the second column fills the rest; neither is pinned to the sidebar's width), so collapsing is a live layout change, not an overlay.
 - **Not designed:** the icon-only nav items need an accessible name and a hover tooltip (icons alone aren't a label) once this becomes code; the expand/collapse transition should respect `prefers-reduced-motion`; and whether the collapsed state persists per user (e.g. `localStorage`) or resets every session is an open decision.
 
 ## Dark theme

@@ -4,6 +4,8 @@
 
 **Design handoff location:** `docs/design/`. Place exported screen images (PNG or PDF) there, named by screen and viewport (for example, `home-mobile.png`), together with a Markdown note describing tokens, component decisions, and any behavior not visible in the images. Copy approved token values into this file once confirmed.
 
+**Figma as reference:** screens designed in Figma are valid references before they are exported. Agents read them through the Figwright MCP to implement and to validate the built UI against the design; exports in `docs/design/` are added over time (product owner decision, 2026-09-30).
+
 ## Brand Direction
 
 Domiyo is a shared household operations tool. Its interface should feel clear, calm, approachable, and dependable, helping household members coordinate without adding noise or judgment. The interface is an everyday utility, not a marketing site. Prioritize a legible daily overview and quick household actions.
@@ -131,7 +133,7 @@ Use borders and spacing before elevation; reserve shadows for overlays, focus ri
 
 ## Components
 
-- **Navigation:** Persistent, predictable access to Home, Tasks, Bills, Meals/Recipes, and Grocery List. On narrow screens, use a mobile-appropriate navigation pattern without hiding the current location. Keep the notification bell discoverable.
+- **Navigation:** Persistent, predictable access to the main destinations. MVP: Início, Agenda, and Perfil (bottom bar on mobile, sidebar from `md`; see `docs/design/inicio/README.md`), plus the notification bell in the header. Later V1 features add Tasks, Bills, Meals/Recipes, and Grocery List. On narrow screens, use a mobile-appropriate navigation pattern without hiding the current location. Keep the notification bell discoverable.
 - **Buttons:** Distinguish primary, secondary, and destructive actions by hierarchy and semantics. Use icon-only buttons only for familiar actions, with accessible names and tooltips where appropriate.
 - **Links:** Every text link uses the single `Link` component, so links always share one color and style. In Figma it is the component set "Link" (page "Componentes"), with variants `Tema` (Claro, Escuro) × `Tom` (Padrão, Perigo) × `Estado` (Padrão, Hover, Foco). Rules for implementation:
   - Roboto SemiBold 14/20, never underlined, in any state.
@@ -183,7 +185,7 @@ Transactional emails reuse the product's look with email-safe techniques. Layout
 - Content order: title (Page Title style, `lavender.900`), one or two short paragraphs (Body, `ink.900`), one primary button (`lavender.900` fill, white label, `radius.full`, at least 44px tall), then the fallback link in full ("Se o botão não funcionar, copie este link: …") and an expiry note (Body Small, `ink.600`).
 - Footer outside the card (Body Small, `ink.600`): why the person received the email and that it was sent automatically; no marketing, no tracking pixel.
 - Build the HTML with tables and inline styles, system fallback fonts after Roboto (`Roboto, Arial, sans-serif`), and always send a plain-text version with the same content. Keep contrast AA; do not rely on images to convey the message.
-- MVP emails: household invitation, password reset, and password changed. Copy is pt-BR.
+- MVP emails: email confirmation at sign-up, household invitation, password reset, and password changed. Copy is pt-BR.
 
 ## Figma File Organization
 

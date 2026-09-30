@@ -22,7 +22,7 @@ src/app/(app)/agenda/
 
 - **`page.tsx`:** always a Server Component. It calls `_data-access` functions, which enforce session and membership, and passes plain data to components.
 - **`_components/`:** route-only components. The interactive root is usually a Client Component such as `content.tsx`. Client Components never query the database or import from `src/db` or `src/server`.
-- **`_actions/`:** one mutation per file. Each action: `requireSession()`, then Zod validation, then `requireHouseholdMember()` for household data, then the domain call, then a typed result. Never trust IDs or household scope sent by the client.
+- **`_actions/`:** one mutation per file. Each action: `requireSession()`, then Zod validation, then `requireHouseholdMember(householdId)` for household data, then the domain call, then a typed result. Never trust IDs or household scope sent by the client without that check.
 - **`_data-access/`:** reads for this route. They start with `import "server-only"`, enforce authorization themselves, and return minimal view models, never raw database rows.
 - Create `_actions/` only when the route mutates data, and `_data-access/` only when it reads data. Logic used by several routes moves to `src/server/<domain>/`.
 
@@ -52,8 +52,8 @@ import { requireHouseholdMember, requireSession } from "@/server/auth";
 import { updateAgendaItem } from "@/server/agenda";
 
 const inputSchema = z.object({
-  householdId: z.string().uuid(),
-  itemId: z.string().uuid(),
+  householdId: z.uuid(),
+  itemId: z.uuid(),
   title: z.string().trim().min(1).max(120),
 });
 
@@ -62,15 +62,19 @@ export type UpdateAgendaItemResult =
   | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
 
 export async function updateAgendaItemAction(input: unknown): Promise<UpdateAgendaItemResult> {
-  const session = await requireSession();
+  await requireSession();
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, message: "Revise os campos destacados.", fieldErrors: parsed.error.flatten().fieldErrors };
+    return {
+      ok: false,
+      message: "Revise os campos destacados.",
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    };
   }
-  await requireHouseholdMember(session.user.id, parsed.data.householdId);
+  const membership = await requireHouseholdMember(parsed.data.householdId);
 
   try {
-    await updateAgendaItem(parsed.data);
+    await updateAgendaItem(membership, parsed.data);
     return { ok: true };
   } catch {
     // Log without personal data; never return internal details.
@@ -80,9 +84,16 @@ export async function updateAgendaItemAction(input: unknown): Promise<UpdateAgen
 }
 ```
 
-- Treat the input as `unknown` and validate it with Zod on the server, even if the form already validated it.
-- The domain function (`updateAgendaItem`) also scopes its queries by `householdId`, as defense in depth.
+- Treat the input as `unknown` and validate it with Zod 4 on the server, even if the form already validated it. Use the Zod 4 APIs (`z.uuid()`, `z.flattenError()`), not the deprecated `z.string().uuid()` and `error.flatten()`.
+- The domain function (`updateAgendaItem`) receives the verified membership and also scopes its queries by `householdId`, as defense in depth. An item that does not belong to that household is treated as not found.
 - User-facing messages are pt-BR and actionable. Error details stay in server logs, without personal data.
+
+## Household scope
+
+- Auth helpers live in `src/server/auth` and are described in `docs/ARCHITECTURE.md` › "Authentication, Authorization, and Invitations": `requireSession()`, `requireHouseholdMember(householdId)`, `requireCurrentMembership()`.
+- `requireHouseholdMember` reads the user from the session. Never pass a user id into it.
+- Pages get the household from `requireCurrentMembership()` and pass `householdId` down; actions receive it back and verify it again. Do not write code that assumes a user has only one household: the MVP limit is a database constraint that later versions remove.
+- A non-member gets the same response as a missing resource (`notFound()`, 404, or the generic not-found result), never a "forbidden" message.
 
 ## Forms
 
@@ -117,10 +128,10 @@ export async function updateAgendaItemAction(input: unknown): Promise<UpdateAgen
 
 ## Testing
 
-- Vitest + React Testing Library for units and integration. Test files live next to the code (`*.test.ts(x)`).
+- Vitest + React Testing Library for units and integration. Test files live next to the code (`*.test.ts(x)`). Integration tests run against the PostgreSQL test database from Docker Compose, never a shared or production database.
 - Playwright for end-to-end flows in `tests/`: sign-in, household invitation, agenda import and view.
-- Every behavior change adds or updates tests. Critical areas need the strongest coverage: authorization (a member of household A cannot read or change household B), cronograma PDF parsing and diff, encryption round-trips, invitation and reset-token expiry.
-- Test data is synthetic. Never use real personal data or production dumps. PDF fixtures must be anonymized copies approved by the product owner.
+- Every behavior change adds or updates tests. Critical areas need the strongest coverage: authorization (a member of household A cannot read or change household B), cronograma output validation, year assignment and diff, encryption round-trips, invitation and reset-token expiry.
+- Test data is synthetic. Never use real personal data or production dumps. PDF fixtures must be anonymized copies approved by the product owner. Tests mock the Claude API and never send PDFs to it.
 
 ## Security checklist (every change)
 
@@ -132,11 +143,11 @@ export async function updateAgendaItemAction(input: unknown): Promise<UpdateAgen
 6. **Output:** rely on React escaping. No `dangerouslySetInnerHTML`. Never render user-supplied HTML.
 7. **CSRF and cookies:** keep the Next.js Server Action origin check and Better Auth's trusted-origin check on. Mutating Route Handlers verify `Origin` and the session. Session cookies are `HttpOnly`, `Secure`, and `SameSite=Lax`.
 8. **Rate limiting:** sign-in, sign-up, password reset, and invitation creation/acceptance.
-9. **Uploads:** check size limits (PDF 10 MB; photos resized to at most 512×512 and 1 MB) and the real file type by magic bytes, not by extension or `Content-Type`. Parse PDFs server-side with a maintained library, with a timeout, and never execute embedded content.
+9. **Uploads:** files go through a Route Handler, not a Server Action (`docs/ARCHITECTURE.md` › "Cronograma upload and reading"). Check size limits (PDF 10 MB; photos resized to at most 512×512 and 1 MB) and the real file type by magic bytes, not by extension or `Content-Type`. Send cronograma PDFs only to the Claude API, with a timeout; validate its output with Zod and treat it as untrusted data.
 10. **Downloads:** stream the decrypted PDF from an authenticated Route Handler with `Cache-Control: no-store` and a sanitized `Content-Disposition`. Never use public or guessable file URLs.
 11. **Errors and logs:** safe pt-BR messages to users. Structured logs without emails, names, agenda content, tokens, or keys.
 12. **Headers:** keep the CSP and security headers from `next.config` intact when adding scripts or assets.
-13. **Privacy:** a new personal or sensitive field needs classification before it is stored (`AGENTS.md`). No analytics, error-monitoring, or other external processor without approval and a privacy review. Sentry is deferred.
+13. **Privacy:** a new personal or sensitive field needs classification before it is stored (`AGENTS.md`). No analytics, error-monitoring, or other external processor without approval and a privacy review. Sentry is deferred. The Claude API is the only approved processor for agenda content; send it the PDF only.
 
 ## Performance
 
