@@ -32,14 +32,17 @@ Agenda, Importar cronograma, Perfil e household, Erros, Tarefas — before movin
 
 - **Login** (`0:1`) — done, committed by Amanda directly (`docs/design/login/`).
 - **Logo**, **Componentes** — not app screens, skip.
+- **Agenda**, **Importar cronograma**, **Perfil e household**, **Erros**, **Tarefas** (priority batch) — done (2026-10-01, Figwright), in the `mobile/desktop × tema-claro/tema-escuro` layout. Exceptions: `importar-cronograma/mobile/tema-escuro/importar-pdf-4-carregando` is a JPG (PNG export kept timing out), and `agenda/desktop/tema-claro/agenda.png` and `agenda-cronogramas.png` are at 0.75x (full-size export timed out).
+- **Still to do:** move **Início** into the folder structure (see its section) and export **Notificações**.
 
 ## Tarefas (`98:2501`) → `docs/design/tarefas/`
 
-Still being built — only one frame exists so far, light mobile only. Export what's there now; re-export when the dark/desktop versions and the remaining screens (calendar, create/edit form, history, delete confirmation) land.
+Still being built — "Lista de tarefas / Mobile" exists in light and dark (both exported). Export what's there now; re-export when the dark/desktop versions and the remaining screens (calendar, create/edit form, history, delete confirmation) land.
 
 | Frame id | Frame name | Target path |
 |---|---|---|
-| (list via script below) | Lista de tarefas / Mobile | `mobile/tema-claro/lista-de-tarefas.png` |
+| 100:2623 | Lista de tarefas / Mobile | `mobile/tema-claro/lista-de-tarefas.png` |
+| 111:4613 | Lista de tarefas / Mobile · Escuro | `mobile/tema-escuro/lista-de-tarefas.png` |
 
 ```js
 const page = await figma.getNodeByIdAsync('98:2501');
@@ -47,9 +50,19 @@ await figma.setCurrentPageAsync(page);
 return page.children.filter(n => n.type === 'FRAME').map(n => ({ id: n.id, name: n.name, w: n.width, h: n.height }));
 ```
 
-## Erros (`60:4842`) — not yet mapped
+## Erros (`60:4842`) → `docs/design/erros/`
 
-The official connector hit its rate limit before this page (and Notificações) could be listed. List it the same way as Notificações below, target folder `docs/design/erros/`.
+| Frame id | Frame name | Target path |
+|---|---|---|
+| 30:2323 | Erro / 404 · Mobile | `mobile/tema-claro/404.png` |
+| 30:2329 | Erro / 500 · Mobile | `mobile/tema-claro/500.png` |
+| 30:2335 | Erro / Modal carregamento | `mobile/tema-claro/modal-carregamento.png` |
+| 33:2599 | Erro / 404 · Escuro | `mobile/tema-escuro/404.png` |
+| 33:2605 | Erro / 500 · Escuro | `mobile/tema-escuro/500.png` |
+| 33:2611 | Erro / Modal carregamento · Escuro | `mobile/tema-escuro/modal-carregamento.png` |
+| 47:5740 | Erro / 404 · Desktop | `desktop/tema-claro/404.png` |
+| 47:5741 | Erro / 500 · Desktop | `desktop/tema-claro/500.png` |
+| 47:5774 | Erro / Modal carregamento · Desktop | `desktop/tema-claro/modal-carregamento.png` |
 
 ## Início (`18:498`) → `docs/design/inicio/`
 
@@ -185,12 +198,10 @@ Target folders: `docs/design/notificacoes/` and `docs/design/erros/`.
 - Commit as the export completes; no need to wait for every category before pushing the first ones.
 - Delete this file once every category above is exported and committed.
 
-## Post-export cleanup (2026-10-01 15:54 UTC)
+## Post-export cleanup (2026-10-01) — resolved
 
-**Status**: 87 screens exported to `docs/design/<categoria>/telas/` (flat folder structure, not following the `mobile/desktop × tema-claro/tema-escuro` layout from EXPORT_PLAN.md).
+1. **Email privacy**: done. The Perfil screens in Figma now show `amanda@example.com`; all 19 Perfil e household screens were re-exported.
+2. **JPG fallback**: there were 6 JPGs, not 7. Five were re-exported as PNG; only `importar-cronograma/mobile/tema-escuro/importar-pdf-4-carregando.jpg` remains (PNG timed out three times).
+3. **Folder layout**: the flat `telas/` folders were moved into the `mobile/desktop × tema-claro/tema-escuro` layout above.
 
-**Before commit:**
-1. **Email privacy**: Figma Perfil screens show `amanda.pintoh@gmail.com`. Replace with `user@example.com` in Figma, then re-export the 19 Perfil e household screens.
-2. **JPG fallback**: 7 screens exported as JPG (timeout on PNG): some agenda, erros, perfil screens. Attempt re-export as PNG 1x. If timeout persists, JPG is acceptable.
-
-**After cleanup, commit with message**: `"export: add 87 Figma design screens to docs/design"` and delete this file.
+Delete this file once Início and Notificações are done.
