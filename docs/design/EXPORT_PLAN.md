@@ -184,3 +184,13 @@ Target folders: `docs/design/notificacoes/` and `docs/design/erros/`.
 - Work one category at a time, one `use_figma`/Figwright page-switch per call (see `figma-use` skill's page rules) — don't loop pages in a single script.
 - Commit as the export completes; no need to wait for every category before pushing the first ones.
 - Delete this file once every category above is exported and committed.
+
+## Post-export cleanup (2026-10-01 15:54 UTC)
+
+**Status**: 87 screens exported to `docs/design/<categoria>/telas/` (flat folder structure, not following the `mobile/desktop × tema-claro/tema-escuro` layout from EXPORT_PLAN.md).
+
+**Before commit:**
+1. **Email privacy**: Figma Perfil screens show `amanda.pintoh@gmail.com`. Replace with `user@example.com` in Figma, then re-export the 19 Perfil e household screens.
+2. **JPG fallback**: 7 screens exported as JPG (timeout on PNG): some agenda, erros, perfil screens. Attempt re-export as PNG 1x. If timeout persists, JPG is acceptable.
+
+**After cleanup, commit with message**: `"export: add 87 Figma design screens to docs/design"` and delete this file.
