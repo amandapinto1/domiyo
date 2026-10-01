@@ -55,15 +55,17 @@ The approved technical direction (product owner, 2026-09-30) is a single full-st
 
 ## Commands
 
-The application has not been scaffolded yet. Do not assume these commands exist. Once manifests and scripts are added, document the exact commands here and use the repository-defined scripts for:
+The package manager is `pnpm` (Node.js 22). Scripts in `package.json`:
 
-- dependency installation;
-- local development (app and database);
-- unit/integration tests;
-- lint and typecheck;
-- production build.
-
-The package manager is `pnpm`; confirm the scripts in `package.json` before running commands.
+- Install: `pnpm install`
+- Database (Docker Compose, creates `domiyo` and `domiyo_test`): `pnpm db:up`
+- Migrations: `pnpm db:generate --name <change>` after a schema change, `pnpm db:migrate` to apply locally; production applies them with `pnpm db:migrate:deploy` as Railway's pre-deploy step (`.railway/railway.ts`)
+- Local verified user (skips email confirmation): `pnpm user:create <email> <password> <name> [surname]`
+- Local invitation link (until Perfil can create one): `pnpm invite:create <inviterEmail> [householdName]`
+- Dev server: `pnpm dev` (reads `.env`; see `.env.example`)
+- Unit tests: `pnpm test`; end-to-end (needs `TEST_DATABASE_URL`, stop `pnpm dev` first): `pnpm exec playwright install chromium` once, then `pnpm test:e2e`
+- Lint and typecheck: `pnpm lint`, `pnpm typecheck`
+- Production build: `pnpm build`
 
 ## Boundaries
 
@@ -75,3 +77,15 @@ Obtain explicit approval before:
 - changing the database schema without an agreed migration plan;
 - changing brand direction or approved design tokens;
 - implementing native mobile clients or push notifications, which are outside V1. PDF cronograma import into the shared agenda is in scope for V1 (see `docs/PRD.md`, "Shared agenda and PDF cronograma import"); full personal-schedule import and external calendar integrations remain outside V1.
+
+<!-- The block below is rewritten by `next dev`, so its H1 is silenced here instead of edited. -->
+<!-- markdownlint-disable MD025 -->
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

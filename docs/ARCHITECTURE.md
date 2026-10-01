@@ -34,7 +34,7 @@ The PWA may cache its static application shell for installation and faster repea
 | Package management | `pnpm`, single package (no monorepo) | Approved direction |
 | Local development | Docker Compose runs PostgreSQL (with `pgcrypto`) for development and tests, with separate databases; the Next.js app runs on the host with `pnpm` | Approved 2026-09-30 |
 | Cronograma reading | Anthropic Claude API reads the uploaded PDF (native PDF input, no PDF parsing library) and returns structured items; our code validates them and applies year assignment, time zones, and the re-import diff. See "Cronograma upload and reading" | Approved by the product owner 2026-09-30 (paid API and new data processor); confirm terms and cost before production |
-| Deployment | Railway: one Next.js service (`next start`, Node.js) plus managed PostgreSQL | Approved 2026-09-30; confirm domains, pricing, and data region before launch |
+| Deployment | Railway: one Next.js service (`next start`, Node.js) plus managed PostgreSQL, served at `https://domiyo.app` | Approved 2026-09-30; domain `domiyo.app` purchased (product owner, 2026-10-01); confirm pricing and data region before launch |
 | Email delivery | Provider-agnostic adapter (SMTP first, console in development); see "Email delivery" | Planned; provider not selected, no paid provider without approval |
 | File storage | Cronograma PDFs and profile photos stored encrypted in PostgreSQL (`bytea`) for the MVP; see "Sensitive data and field-level encryption" | Planned; avoids adding a storage service |
 | Error monitoring | Structured server logs without personal data in the MVP. An external service such as Sentry is deferred: it is a new data processor and needs approval plus a privacy review | Deferred 2026-09-30 |
@@ -60,7 +60,7 @@ docs/                      PRD, design system, architecture, conventions, design
 drizzle/                   Generated SQL migrations (versioned, reviewed)
 public/                    Static assets and PWA icons
 src/
-  app/                     App Router routes (pt-BR URLs, e.g. /agenda, /perfil)
+  app/                     App Router routes (English URLs, e.g. /agenda, /profile, /login)
     (auth)/                Sign-in, sign-up, password reset, invitation acceptance
     (app)/                 Authenticated area (its layout requires a session)
       agenda/
@@ -171,7 +171,7 @@ Runtime configuration comes from server-only environment variables (never prefix
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string (application role) |
-| `APP_PUBLIC_URL` | Public URL of the app, used in email links and as the trusted origin |
+| `APP_PUBLIC_URL` | Public URL of the app, used in email links and as the trusted origin (production: `https://domiyo.app`) |
 | `APP_DEFAULT_TIME_ZONE` | `America/Fortaleza` for the MVP |
 | `BETTER_AUTH_SECRET` | Better Auth signing/encryption secret (32+ random bytes) |
 | `BETTER_AUTH_URL` | Base URL Better Auth uses (same as `APP_PUBLIC_URL`) |
@@ -180,7 +180,7 @@ Runtime configuration comes from server-only environment variables (never prefix
 | `FIELD_ENCRYPTION_KEY_PREVIOUS` | Previous key, only during rotation |
 | `EMAIL_TRANSPORT` | `console` or `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP credentials from the chosen provider |
-| `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Sender, for example `nao-responda@<domain>` and `Domiyo` |
+| `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Sender, for example `nao-responda@domiyo.app` and `Domiyo` |
 | `ANTHROPIC_API_KEY` | Claude API key for cronograma reading |
 | `CRONOGRAMA_AI_MODEL` | Pinned Claude model id used for cronograma reading |
 
@@ -213,7 +213,7 @@ Runtime configuration comes from server-only environment variables (never prefix
 
 ## Deployment
 
-- Deployment: one Next.js service (`next build` + `next start` on Node.js) and managed PostgreSQL on Railway, in a region selected for latency and privacy requirements. Run database migrations as an explicit release step, not on every app start.
+- Deployment: one Next.js service (`next build` + `next start` on Node.js) and managed PostgreSQL on Railway, in a region selected for latency and privacy requirements. Run database migrations as an explicit release step, not on every app start: Railway's pre-deploy command runs `pnpm db:migrate:deploy` (`scripts/migrate.ts`, using `drizzle-orm`'s migrator) once per deploy, and a failed migration stops the deploy. Railway settings live in `.railway/railway.ts` (Railway Infrastructure as Code; apply with `railway config plan` / `railway config apply`).
 - Use separate development, test, and production environments with separate credentials and data. Never copy production personal data into local development or tests.
 - Configure HTTPS, restricted database network access, least-privilege service credentials, automated backups, and monitored backup/restore outcomes.
 - Store runtime configuration in the hosting platform's secret manager. Never commit secrets, expose them to the browser, or include them in build artifacts or logs.
@@ -233,7 +233,7 @@ Runtime configuration comes from server-only environment variables (never prefix
 
 - Exact library versions (pinned at scaffold time) and the PWA service-worker approach (hand-written or a maintained library such as Serwist).
 - Email delivery provider.
-- Railway account topology, production domains, database region, pricing, backup retention, and restore objectives.
+- Railway account topology, database region, pricing, backup retention, and restore objectives. The production domain is `domiyo.app` (purchased 2026-10-01); whether `www.domiyo.app` redirects to it is still open. `.app` is on the HSTS preload list, so it only works over HTTPS.
 - Exact recurrence materialization strategy after the MVP (Railway cron; time zones are decided above).
 - Claude model, prompt, and structured-output schema for cronograma reading; Anthropic retention terms and cost.
 - Secret manager and backup location for the field-encryption key (scope and mechanism are decided above).

@@ -6,7 +6,7 @@
 
 - Use the App Router under `src/app`. The top-level layout is described in `docs/ARCHITECTURE.md` › "Project Structure".
 - Keep business logic out of UI components. Shared domain logic lives in `src/server/`, the Drizzle schema and client in `src/db/`, framework-agnostic helpers in `src/lib/`, and client hooks in `src/hooks/`.
-- Route URLs are user-facing, so they are in pt-BR (`/agenda`, `/perfil`, `/entrar`). Code, folder names other than routes, identifiers, and comments are in English.
+- Route URLs are in English (`/agenda`, `/profile`, `/login`; product owner decision, 2026-10-01), like the rest of the code. Only the interface copy is pt-BR.
 
 ### Route module layout
 
@@ -97,7 +97,7 @@ export async function updateAgendaItemAction(input: unknown): Promise<UpdateAgen
 
 ## Forms
 
-- Build forms from the design-system field components (shadcn/ui re-themed with our tokens), with React Hook Form and a Zod schema. Reference: https://ui.shadcn.com/docs/forms/react-hook-form.
+- Build forms from the design-system field components (shadcn/ui re-themed with our tokens), with React Hook Form and a Zod schema. Reference: `https://ui.shadcn.com/docs/forms/react-hook-form`.
 - Share the Zod schema between the form and the Server Action when the shape is the same. The server check is the one that counts.
 - Every form has labeled controls, inline errors, and disabled/pending, success, and error states (`docs/DESIGN_SYSTEM.md`).
 

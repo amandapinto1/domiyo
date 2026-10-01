@@ -139,7 +139,7 @@ Use borders and spacing before elevation; reserve shadows for overlays, focus ri
   - Roboto SemiBold 14/20, never underlined, in any state.
   - Colors come only from the `color.link*` tokens above: `Padrão` for regular links, `Perigo` for destructive ones.
   - Focus-visible state: a 2px ring (`lavender.700` on light, `lavender.300` on dark) with a 4px radius; in code, use `outline` plus `outline-offset: 2px` so the ring does not touch the text.
-  - Use `<a>` for navigation ("Criar conta", "Entrar", "Esqueci minha senha") and `<button>` styled with the same component for in-page actions ("Mostrar", "Copiar", "Excluir item", "Revogar link").
+  - Use `<a>` for navigation ("Criar conta", "Entrar", "Esqueci minha senha") and `<button>` styled with the same component for in-page actions ("Copiar", "Excluir item", "Revogar link"). Showing or hiding a password is an eye / eye-off icon button inside the field, not a text link (product owner decision, 2026-10-01).
   - Because weight is the non-color cue, do not put a link inside Medium or bold text. Inline links sit after Regular text (for example, "Ainda não tem conta? **Criar conta**").
   - Destructive links still open a confirmation dialog when recovery is difficult (see States).
 - **Forms:** Visible labels above fields, clear required/optional status, inline validation, and actionable error messages. Do not use placeholder text as the only label.
