@@ -35,7 +35,7 @@ test.describe("sign-in form", () => {
     await page.getByRole("button", { name: "Entrar" }).click();
 
     await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByRole("heading", { name: "Você entrou no Domiyo." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: `Olá, ${E2E_MEMBER.name}` })).toBeVisible();
 
     await page.goto("/login");
     await expect(page).toHaveURL(/\/home$/);

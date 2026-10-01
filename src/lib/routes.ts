@@ -7,6 +7,8 @@ export const ROUTES = {
   resetPassword: "/reset-password",
   welcome: "/welcome",
   home: "/home",
+  agenda: "/agenda",
+  profile: "/profile",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
 } as const;
 
