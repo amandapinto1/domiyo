@@ -24,11 +24,32 @@ docs/design/<categoria>/
 
 The official Figma MCP connector hit the Starter-plan rate limit while mapping pages (see thread), so the remaining export must run through the local Figwright session. That session can't be reached by direct message from this cloud session — the reliable handoff is this file, committed to the branch both sessions share.
 
+## Priority (Amanda, 2026-10-01 14:58): export these 5 first
+
+Agenda, Importar cronograma, Perfil e household, Erros, Tarefas — before moving to the nav-structure decision or any new screen. The tables below already cover Agenda, Importar cronograma and Perfil e household; Erros and Tarefas have their own sections. Notificações and Início are mapped too but are not in this priority batch — do them after.
+
 ## Pages already covered
 
 - **Login** (`0:1`) — done, committed by Amanda directly (`docs/design/login/`).
 - **Logo**, **Componentes** — not app screens, skip.
-- **Tarefas** (`98:2501`) — still being built/componentized (3 fixes just applied). Do not export yet; only 1 frame ("Lista de tarefas / Mobile") exists and it's a first draft, not final.
+
+## Tarefas (`98:2501`) → `docs/design/tarefas/`
+
+Still being built — only one frame exists so far, light mobile only. Export what's there now; re-export when the dark/desktop versions and the remaining screens (calendar, create/edit form, history, delete confirmation) land.
+
+| Frame id | Frame name | Target path |
+|---|---|---|
+| (list via script below) | Lista de tarefas / Mobile | `mobile/tema-claro/lista-de-tarefas.png` |
+
+```js
+const page = await figma.getNodeByIdAsync('98:2501');
+await figma.setCurrentPageAsync(page);
+return page.children.filter(n => n.type === 'FRAME').map(n => ({ id: n.id, name: n.name, w: n.width, h: n.height }));
+```
+
+## Erros (`60:4842`) — not yet mapped
+
+The official connector hit its rate limit before this page (and Notificações) could be listed. List it the same way as Notificações below, target folder `docs/design/erros/`.
 
 ## Início (`18:498`) → `docs/design/inicio/`
 
@@ -163,3 +184,13 @@ Target folders: `docs/design/notificacoes/` and `docs/design/erros/`.
 - Work one category at a time, one `use_figma`/Figwright page-switch per call (see `figma-use` skill's page rules) — don't loop pages in a single script.
 - Commit as the export completes; no need to wait for every category before pushing the first ones.
 - Delete this file once every category above is exported and committed.
+
+## Post-export cleanup (2026-10-01 15:54 UTC)
+
+**Status**: 87 screens exported to `docs/design/<categoria>/telas/` (flat folder structure, not following the `mobile/desktop × tema-claro/tema-escuro` layout from EXPORT_PLAN.md).
+
+**Before commit:**
+1. **Email privacy**: Figma Perfil screens show `amanda.pintoh@gmail.com`. Replace with `user@example.com` in Figma, then re-export the 19 Perfil e household screens.
+2. **JPG fallback**: 7 screens exported as JPG (timeout on PNG): some agenda, erros, perfil screens. Attempt re-export as PNG 1x. If timeout persists, JPG is acceptable.
+
+**After cleanup, commit with message**: `"export: add 87 Figma design screens to docs/design"` and delete this file.
