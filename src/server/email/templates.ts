@@ -4,6 +4,7 @@ import type { Email } from "./index";
 // Layout and copy: docs/design/email/README.md. Email-safe HTML: tables and inline styles only.
 const FONT = "Roboto, Arial, sans-serif";
 const FOOTER_AUTOMATIC = "E-mail automático do Domiyo — não responda.";
+const timeZone = process.env.APP_DEFAULT_TIME_ZONE ?? "America/Fortaleza";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
@@ -77,8 +78,30 @@ export function resetPasswordMessage(to: string, url: string): Email {
   });
 }
 
+export function householdInvitationMessage(
+  to: string,
+  invitation: { inviterFirstName: string; inviterFullName: string; householdName: string; url: string; expiresAt: Date },
+): Email {
+  const { inviterFirstName, inviterFullName, householdName, url, expiresAt } = invitation;
+  const expiryDate = new Intl.DateTimeFormat("pt-BR", { timeZone, day: "numeric", month: "long" }).format(expiresAt);
+  const subject = `${inviterFirstName} convidou você para o Domiyo`;
+
+  return render(to, subject, {
+    title: subject,
+    paragraphs: [
+      `Você recebeu um convite para entrar no household “${householdName}” e organizar a agenda da casa em conjunto.`,
+    ],
+    button: { label: "Aceitar convite", url },
+    showFallbackLink: true,
+    note: `Este convite vale até ${expiryDate} e só pode ser usado uma vez.`,
+    footer: [
+      `Você recebeu este e-mail porque ${inviterFullName} informou este endereço ao convidar você. Se não conhece essa pessoa, ignore esta mensagem.`,
+      FOOTER_AUTOMATIC,
+    ],
+  });
+}
+
 export function passwordChangedMessage(to: string, changedAt: Date, forgotPasswordUrl: string): Email {
-  const timeZone = process.env.APP_DEFAULT_TIME_ZONE ?? "America/Fortaleza";
   const date = new Intl.DateTimeFormat("pt-BR", { timeZone, dateStyle: "long" }).format(changedAt);
   const time = new Intl.DateTimeFormat("pt-BR", { timeZone, timeStyle: "short" }).format(changedAt);
 

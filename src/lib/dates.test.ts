@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarDateIn, formatLongDate, weekOf } from "./dates";
+import { calendarDateIn, formatLongDate, formatShortDate, weekOf } from "./dates";
 
 describe("calendarDateIn", () => {
   it("uses the calendar date of the given time zone, not UTC", () => {
@@ -12,6 +12,14 @@ describe("calendarDateIn", () => {
 describe("formatLongDate", () => {
   it("formats in pt-BR with a capitalized weekday", () => {
     expect(formatLongDate("2026-09-28")).toBe("Segunda-feira, 28 de setembro");
+  });
+});
+
+describe("formatShortDate", () => {
+  it("shows the day and abbreviated month in the given time zone", () => {
+    const lateEveningInFortaleza = new Date("2026-10-01T01:30:00Z");
+    expect(formatShortDate(lateEveningInFortaleza, "America/Fortaleza")).toBe("30 set");
+    expect(formatShortDate(lateEveningInFortaleza, "UTC")).toBe("1 out");
   });
 });
 

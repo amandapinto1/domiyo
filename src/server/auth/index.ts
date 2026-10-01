@@ -1,2 +1,2 @@
 export { auth } from "./auth";
-export { getSession, requireCurrentMembership, requireSession } from "./session";
+export { getSession, requireCurrentMembership, requireHouseholdMember, requireSession } from "./session";

@@ -1,11 +1,16 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Cookie } from "@playwright/test";
 import { E2E_MEMBER } from "./global-setup";
+import { sessionCookies } from "./session";
+
+let cookies: Cookie[] = [];
+
+test.beforeAll(async ({ browser }, testInfo) => {
+  cookies = await sessionCookies(browser, testInfo.project.use.baseURL, E2E_MEMBER);
+});
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(E2E_MEMBER.email);
-  await page.getByLabel("Senha", { exact: true }).fill(E2E_MEMBER.password);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.context().addCookies(cookies);
+  await page.goto("/home");
   await expect(page).toHaveURL(/\/home$/);
 });
 
@@ -46,9 +51,10 @@ test("the sidebar collapses to icons on desktop", async ({ page, isMobile }) => 
 
   const sidebar = page.getByRole("complementary");
   await expect(sidebar).toHaveCSS("width", "260px");
-  await page.getByRole("button", { name: "Recolher menu" }).click();
+  // Keyboard, because the Next.js dev tools badge sits over the toggle's corner in `next dev`.
+  await page.getByRole("button", { name: "Recolher menu" }).press("Enter");
   await expect(sidebar).toHaveCSS("width", "104px");
   await expect(sidebar.getByRole("link", { name: "Início" })).toHaveAttribute("title", "Início");
-  await page.getByRole("button", { name: "Expandir menu" }).click();
+  await page.getByRole("button", { name: "Expandir menu" }).press("Enter");
   await expect(sidebar).toHaveCSS("width", "260px");
 });

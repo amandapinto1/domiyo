@@ -36,6 +36,13 @@ export function formatLongDate(day: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/** "28 set": the day and abbreviated month of `instant` in `timeZone`. */
+export function formatShortDate(instant: Date, timeZone = APP_TIME_ZONE): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone, day: "numeric", month: "short" })
+    .format(instant)
+    .replace(/\.|\bde /g, "");
+}
+
 /** The Sunday-to-Saturday week that contains `day`. */
 export function weekOf(day: string): WeekDay[] {
   const sunday = toUtcDate(day);

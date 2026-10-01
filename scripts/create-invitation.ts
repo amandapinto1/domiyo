@@ -1,5 +1,5 @@
-// Creates a household invitation link for local development and e2e tests, until the Perfil screen
-// that creates invitations exists. Gives the inviter a household first if needed.
+// Creates a household invitation link without the Perfil UI, for local development and e2e setup.
+// Gives the inviter a household first if needed.
 // Usage: pnpm invite:create <inviterEmail> [householdName]
 import { createHash, randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -35,7 +35,7 @@ try {
       .where(eq(householdMembers.userId, inviter.id));
     if (!membership) {
       const [household] = await tx.insert(households).values({ name: householdName }).returning({ id: households.id });
-      await tx.insert(householdMembers).values({ householdId: household.id, userId: inviter.id });
+      await tx.insert(householdMembers).values({ householdId: household.id, userId: inviter.id, role: "admin" });
       await tx.insert(agendas).values({ householdId: household.id, ownerUserId: inviter.id, name: `Agenda de ${inviter.name}` });
       membership = { householdId: household.id };
     }
