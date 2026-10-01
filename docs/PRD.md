@@ -86,16 +86,16 @@ The remaining V1 features (household tasks, bills, meals and recipes, the shared
 - Any household member can create a task and assign it to any household member.
 - A task has a description, responsible member, due date, and completion status. Additional fields such as notes are not yet required.
 - The assigned member receives an in-app notification when another member creates a task assigned to them. The notification identifies the task and its due date (for example, "Task X was assigned to you for day Y"). No notification is sent when members assign tasks to themselves.
-- Tasks can recur. Recurrence options and editing rules for an existing series are an open product decision.
+- Tasks can recur (decided by the product owner on 2026-10-01). Supported patterns: daily, weekly on one or more selected weekdays (for example, Thursday and Saturday for taking out the trash, since the fixed days vary by household), and monthly on a fixed day of the month. Editing an occurrence of a recurring task shows a confirmation dialog with two choices: "Somente esta tarefa" (detaches this occurrence from the series and flags it as edited manually, the same pattern already used by the cronograma import's "edited manually" flag) or "Esta e as próximas em aberto da série" (updates this occurrence and every later occurrence that is still open). A completed occurrence is never changed by a series edit, and the "esta e as próximas" option is unavailable when the occurrence being edited is itself already completed — only "somente esta" applies then.
 - Provide a dedicated task calendar, separate from the task list, where the user switches between weekly and monthly views and can mark tasks complete.
-- Tasks can be completed from the home daily agenda, the task calendar, and task views. Whether only the assignee or any household member can mark a task complete is an open product decision.
+- Tasks can be completed from the home daily agenda, the task calendar, and task views. Any household member can mark any task complete, not only the assignee, and any household member can edit any task (decided by the product owner on 2026-10-01; chosen over an assignee-only rule because it is simpler to narrow later with per-household roles in v3 than to loosen a stricter rule then). Record which member completed each task, not only the completion timestamp, so the history view below stays accountable without restricting who can act.
 - From the Tasks area, provide a history button that opens a member-specific history view in user-selectable weekly and monthly modes, showing that member's tasks on their due dates and whether each was completed. Past incomplete tasks must remain distinguishable from completed tasks.
 
 ### Bills
 
 - Members can record a household bill with an amount, due date, paid/pending status, and optional recurrence.
 - Members can update the status when a bill is paid.
-- Recurring bills must produce trackable due occurrences; recurrence rules and how changes affect future occurrences remain to be decided.
+- Recurring bills use the same recurrence patterns and series-editing rule as tasks (decided by the product owner on 2026-10-01; see "Household tasks"): daily, weekly on selected weekdays, or monthly on a fixed day, with "somente esta" vs. "esta e as próximas em aberto" editing, and a paid occurrence never changed retroactively by a series edit.
 - Bill payment, bank connections, payment processing, and receipt storage are not required in V1.
 
 ### Meals, recipes, and ingredients
@@ -188,12 +188,11 @@ Review the targets after the first usability sessions; do not add third-party an
 
 ## Open Product Decisions
 
-- Task and bill recurrence options, series editing, and overdue-item behavior.
+- Overdue-item behavior for tasks and bills (recurrence options and series editing were decided on 2026-10-01; see "Household tasks").
 - Recipe ingredient quantities/units and duplicate consolidation in the grocery list.
 - Grocery-list lifecycle across weeks and handling/removal of purchased items.
 - Notification read state, retention, and whether any events beyond task assignments notify members.
 - Email delivery provider. The integration is planned to be provider-agnostic (`ARCHITECTURE.md` › "Email delivery"); only the provider and its keys are missing. Blocks sending email confirmation, invitations by email, and password-reset emails in the MVP.
 - Baseline and target values for success metrics after initial usability testing.
 - What happens to a departing member's tasks, bills, and recipes when they leave or are removed from a household (not needed for the MVP: a departing member's agenda is deleted).
-- Whether task completion is restricted to the assignee or open to any household member.
 - Data hosting region and whether LGPD international-transfer safeguards are needed, given available provider regions (needed before production, not before development).
