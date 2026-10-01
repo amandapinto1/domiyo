@@ -1,0 +1,51 @@
+{
+  "name": "domiyo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:deploy": "node scripts/migrate.ts",
+    "user:create": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --conditions=react-server scripts/create-user.ts",
+    "invite:create": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-invitation.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "5.9.1",
+    "@node-rs/argon2": "2.2.1",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.3",
+    "lucide-react": "1.49.0",
+    "next": "16.3.8",
+    "postgres": "3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.89.0",
+    "server-only": "0.0.1",
+    "styled-components": "6.5.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^22.20.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.8",
+    "railway": "3.12.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  },
+  "packageManager": "pnpm@10.30.3"
+}

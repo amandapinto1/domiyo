@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* Theme is chosen by the user and stored in a cookie; the root layout sets data-theme. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tokens from docs/DESIGN_SYSTEM.md. The default Tailwind palette is removed on purpose.
+   "static" always emits the variables, since styled-components reads them via var(). */
+@theme static {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-lavender-950: #1f1326;
+  --color-lavender-900: #382344;
+  --color-lavender-800: #493964;
+  --color-lavender-750: #332db4;
+  --color-lavender-700: #716eae;
+  --color-lavender-600: #8987c4;
+  --color-lavender-500: #9a99d0;
+  --color-lavender-300: #b9b8e1;
+  --color-lavender-100: #e4e3f2;
+  --color-lime-500: #c9fa5a;
+  --color-lime-300: #ddfe91;
+  --color-ink-900: #2b2944;
+  --color-ink-600: #77758d;
+  --color-line: #e9e8f2;
+  --color-danger-700: #8e2049;
+  --color-danger-600: #b02a5b;
+  --color-danger-300: #f59bbd;
+  --color-danger-100: #f9e6ee;
+  --color-success-600: #236b3a;
+  --color-success-300: #7fd99a;
+  --color-success-100: #e6f4ea;
+  --color-warning-600: #7a5c00;
+  --color-warning-300: #ffd66b;
+  --color-warning-100: #fff3d6;
+  --color-info-600: #2b5a8c;
+  --color-info-300: #9bc3e8;
+  --color-info-100: #e4eef7;
+
+  --font-sans: var(--font-roboto), system-ui, sans-serif;
+
+  --text-page-title: 2rem;
+  --text-page-title--line-height: 2.5rem;
+  --text-section-heading: 1.5rem;
+  --text-section-heading--line-height: 2rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-body-small: 0.875rem;
+  --text-body-small--line-height: 1.25rem;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+}
+
+/* Semantic tokens: shared by Tailwind utilities and styled-components (via var()). */
+:root {
+  --app-heading: var(--color-lavender-900);
+  --app-text: var(--color-ink-900);
+  --app-text-secondary: var(--color-ink-600);
+  --app-surface: var(--color-white);
+  --app-input: var(--color-white);
+  --app-border-interactive: var(--color-lavender-600);
+  --app-primary: var(--color-lavender-900);
+  --app-on-primary: var(--color-white);
+  --app-primary-accent: var(--color-lime-500);
+  --app-on-primary-accent: var(--color-lavender-900);
+  --app-link: var(--color-lavender-750);
+  --app-link-hover: var(--color-lavender-900);
+  --app-link-focus: var(--color-lavender-700);
+  --app-focus: var(--color-lavender-900);
+  --app-danger: var(--color-danger-600);
+  --app-danger-subtle: var(--color-danger-100);
+  --app-toggle: var(--color-white);
+  --app-toggle-icon: var(--color-lavender-900);
+  --app-splash: var(--color-white);
+  --app-logo-stem: var(--color-lavender-900);
+  --app-logo-accent: var(--color-lavender-700);
+  --app-logo-text: var(--color-lavender-900);
+}
+
+[data-theme="dark"] {
+  --app-heading: var(--color-white);
+  --app-text: var(--color-white);
+  --app-text-secondary: var(--color-lavender-300);
+  --app-surface: var(--color-lavender-800);
+  --app-input: var(--color-lavender-900);
+  --app-primary: var(--color-lime-500);
+  --app-on-primary: var(--color-lavender-900);
+  --app-primary-accent: var(--color-lavender-900);
+  --app-on-primary-accent: var(--color-lime-500);
+  --app-link: var(--color-lime-500);
+  --app-link-hover: var(--color-lime-300);
+  --app-link-focus: var(--color-lavender-300);
+  --app-focus: var(--color-lavender-300);
+  --app-danger: var(--color-danger-300);
+  --app-danger-subtle: transparent;
+  --app-toggle: var(--color-lavender-800);
+  --app-toggle-icon: var(--color-white);
+  --app-splash: var(--color-lavender-900);
+  --app-logo-stem: var(--color-lavender-300);
+  --app-logo-accent: var(--color-lime-500);
+  --app-logo-text: var(--color-white);
+}
+
+@theme inline {
+  --color-heading: var(--app-heading);
+  --color-text: var(--app-text);
+  --color-text-secondary: var(--app-text-secondary);
+  --color-surface: var(--app-surface);
+  --color-danger: var(--app-danger);
+  --color-danger-subtle: var(--app-danger-subtle);
+  --color-link: var(--app-link);
+  --color-link-hover: var(--app-link-hover);
+  --color-link-focus: var(--app-link-focus);
+  --color-focus: var(--app-focus);
+  --color-toggle: var(--app-toggle);
+  --color-toggle-icon: var(--app-toggle-icon);
+}
+
+html {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--app-text);
+  -webkit-font-smoothing: antialiased;
+}
