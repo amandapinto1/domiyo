@@ -8,6 +8,7 @@ export const ROUTES = {
   welcome: "/welcome",
   home: "/home",
   agenda: "/agenda",
+  agendaImport: (agendaId: string) => `/agenda/import?agendaId=${encodeURIComponent(agendaId)}`,
   profile: "/profile",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   /** `version` changes when the photo does, so the browser never shows a stale one. */

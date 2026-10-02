@@ -3,7 +3,9 @@ import { z } from "zod";
 import { addDays, APP_TIME_ZONE, calendarDateIn, timeIn, weekOf, zonedTimeToUtc, type WeekDay } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 import { requireCurrentMembership } from "@/server/auth";
-import { listAgendaItems, listHouseholdAgendas, type HouseholdAgenda } from "@/server/agendas";
+import { listAgendaItems, listHouseholdAgendas, type AgendaItemRecord, type HouseholdAgenda } from "@/server/agendas";
+import { readAgendaItemsSafely } from "@/server/agendas/read-agenda-items-safely";
+import { getCurrentCronogramaInfo } from "@/server/cronograma";
 import { parseSelectedAgendas } from "../_components/agenda-selection";
 
 export type AgendaOption = { id: string; name: string; ownerFirstName: string };
@@ -25,6 +27,7 @@ export type AgendaItemView = {
   location: string | null;
   teacher: string | null;
   content: string | null;
+  tag: string | null;
   isImported: boolean;
 };
 
@@ -37,6 +40,8 @@ export type AgendaView = {
   selectedAgendaIds: string[];
   /** The signed-in member's own agenda, preselected for new items. */
   ownAgendaId: string | null;
+  itemsUnavailable: boolean;
+  currentCronograma: { fileName: string; importedAt: Date } | null;
   /** Every item of the selected agendas in the week of `selectedDay`. */
   items: AgendaItemView[];
 };
@@ -75,14 +80,18 @@ export async function getAgendaView(params: {
     params.agendas,
     householdAgendas.map((agenda) => agenda.id),
   );
-  const records = await listAgendaItems(
+  const result = await readAgendaItemsSafely<AgendaItemRecord>(() => listAgendaItems(
     householdId,
     selectedAgendaIds,
     zonedTimeToUtc(week[0].date, "00:00", APP_TIME_ZONE),
     zonedTimeToUtc(addDays(week[6].date, 1), "00:00", APP_TIME_ZONE),
-  );
+  ));
+  const records = result.records;
+  if (result.unavailable) console.error("agenda.items.load.failed");
 
   const agendaById = new Map(householdAgendas.map((agenda) => [agenda.id, agenda]));
+  const ownAgendaId = householdAgendas.find((agenda) => agenda.ownerUserId === userId)?.id ?? null;
+  const currentCronograma = ownAgendaId ? await getCurrentCronogramaInfo(householdId, ownAgendaId) : null;
   const items = records.flatMap((record): AgendaItemView[] => {
     const agenda = agendaById.get(record.agendaId);
     if (!agenda) return [];
@@ -101,6 +110,7 @@ export async function getAgendaView(params: {
         location: record.location,
         teacher: record.teacher,
         content: record.content,
+        tag: record.tag,
         isImported: record.source === "imported",
       },
     ];
@@ -113,7 +123,9 @@ export async function getAgendaView(params: {
     week,
     agendas: householdAgendas.map(({ id, name, ownerFirstName }) => ({ id, name, ownerFirstName })),
     selectedAgendaIds,
-    ownAgendaId: householdAgendas.find((agenda) => agenda.ownerUserId === userId)?.id ?? null,
+    ownAgendaId,
+    itemsUnavailable: result.unavailable,
+    currentCronograma,
     items,
   };
 }

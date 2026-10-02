@@ -1,0 +1,1 @@
+ALTER TABLE "pending_agenda_imports" ADD COLUMN "failure" text;

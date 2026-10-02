@@ -25,12 +25,14 @@ export default defineRailway(() => {
       EMAIL_TRANSPORT: preserve(),
       EMAIL_FROM_ADDRESS: preserve(),
       EMAIL_FROM_NAME: preserve(),
+      ANTHROPIC_API_KEY: preserve(),
+      CRONOGRAMA_AI_MODEL: preserve(),
     },
   });
 
   const invitationCleanup = service("invitation-cleanup", {
     build: "pnpm build",
-    start: "pnpm invitations:cleanup",
+    start: "pnpm data:cleanup",
     cronSchedule: "0 * * * *",
     env: { DATABASE_URL: db.env.DATABASE_URL },
   });

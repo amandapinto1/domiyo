@@ -31,6 +31,18 @@ test("Agenda shows the week and the agenda filter", async ({ page }) => {
   await expect(page.getByText("Nenhum compromisso no dia selecionado").filter({ visible: true })).toBeVisible();
 });
 
+test("cronograma upload rejects a file without a PDF signature", async ({ page }) => {
+  await page.goto("/agenda/import");
+  await expect(page.getByRole("heading", { name: "Importar cronograma" })).toBeVisible();
+  await page.getByLabel("PDF do cronograma").setInputFiles({
+    name: "cronograma.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("not a PDF"),
+  });
+  await page.getByRole("button", { name: "Enviar para leitura" }).click();
+  await expect(page.getByText("O arquivo escolhido não é um PDF válido.")).toBeVisible();
+});
+
 // These flows change data, so they run once (desktop) and in order.
 test.describe.serial("agenda items", () => {
   test.skip(({ isMobile }) => isMobile, "stateful flow runs once");

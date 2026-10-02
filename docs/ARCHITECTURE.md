@@ -112,7 +112,7 @@ Decided by the product owner on 2026-09-30. Treat this as the technical plan for
 | Data | Storage |
 | --- | --- |
 | Agenda item: `id`, `agenda_id`, `starts_at`, `ends_at` (`timestamptz`), subject color, `source` (imported/manual), `edited_manually`, audit timestamps | Plaintext, so the owner can inspect schedules by date in the database |
-| Agenda item: title, type, location, teacher, class content, notes | Encrypted |
+| Agenda item: title, type, location, teacher, class content, tag (NAF, AIM n, CBL, TBL, OSCE), notes | Encrypted |
 | Cronograma PDF bytes and original file name | Encrypted |
 | Profile photo bytes | Encrypted |
 | Member first name, surname, email | Plaintext (email is needed to look up accounts at sign-in); still personal data, so never log it |
@@ -133,21 +133,25 @@ Mechanism:
 
 Server Actions accept at most 1 MB per request by default, and raising `serverActions.bodySizeLimit` would raise it for every action. The PDF (up to 10 MB) therefore goes through a dedicated Route Handler:
 
-1. The browser sends `multipart/form-data` to `POST /api/agendas/[agendaId]/cronograma`. Keep this route out of any `proxy`/middleware matcher, because Next.js buffers bodies that pass through the proxy with its own size cap.
-2. The handler checks `Origin`, calls `requireSession()`, loads the agenda, and calls `requireHouseholdMember(agenda.householdId)`.
-3. It rejects a `Content-Length` over `MAX_PDF_BYTES` (10 MB) before reading, counts bytes while reading and aborts past the limit, and checks the `%PDF-` magic bytes.
-4. It sends the PDF to the Claude API (below) and stores a pending import: the encrypted PDF plus the validated items, linked to the agenda. A pending import is an upload the user has not confirmed yet. It expires after 3 days (product owner decision, 2026-09-30): expired imports cannot be confirmed, and each new upload deletes every expired pending import, so the MVP needs no scheduled job.
-5. The confirmation screen shows the parsed result. Confirming calls a small Server Action with the pending import id; only then are agenda items written (PRD: nothing is written before confirmation).
+1. The browser sends `multipart/form-data` (`agendaId` and `file`) to `POST /api/agendas/cronograma`; the stored PDF is downloaded from `GET /api/agendas/[agendaId]/cronograma` (`attachment`, `private, no-store`, household members only). Keep these routes out of any `proxy`/middleware matcher, because Next.js buffers bodies that pass through the proxy with its own size cap.
+2. The handler checks `Origin`, calls `requireSession()`, resolves the membership, and calls `requireHouseholdMember(householdId)`; the agenda must belong to that household.
+3. It rejects a `Content-Length` over `MAX_PDF_BYTES` (10 MB) before reading, checks the `%PDF-` magic bytes, rejects a second upload while a read for the same agenda is in progress, and applies a per-user limit of 3 reads per 10 minutes (stored in the existing `rate_limits` table) because each read is a paid API call.
+4. It stores a pending import (`pending_agenda_imports`, one per agenda): the encrypted PDF and file name, with no result yet, and answers `202` immediately. The read itself runs after the response with Next's `after()`, so closing the screen does not stop it; when it ends, the validated schedule (encrypted) or a non-sensitive failure code is written to the same row, together with `read_finished_at`, which gives the total reading time. A read with no result after 8 minutes (for example, the server restarted) is shown as interrupted. A pending import expires after 3 days (product owner decision, 2026-09-30): expired imports cannot be confirmed and the hourly `data:cleanup` job deletes them.
+5. The import screen shows one of four states from the server: reading (only the progress screen: no upload form, the file name, and the time elapsed since the upload, counting live in the browser from a server-computed start so a wrong device clock does not skew it; it refreshes itself every 5 seconds while open), failed (with a message for the failure code, and the upload form again), ready (the confirmation preview, with the total reading time), or nothing. Confirming calls a small Server Action with the pending import id; it recomputes the diff inside a transaction, and only then are agenda items written and the current PDF replaced (PRD: nothing is written before confirmation).
 
 Profile photos use the same pattern (Route Handler, size and magic-byte checks). Implemented 2026-10-01: the browser crops the photo in "Ajustar foto" and encodes a 512×512 JPEG, so no server-side image library is needed; `PUT /api/profile/photo` checks `Origin`, the session, the 1 MB limit, the JPEG signature and the 512×512 frame header, then stores it in `user_photos` encrypted with `pgp_sym_encrypt_bytea` (helpers in `src/server/crypto`). `GET /api/users/[userId]/photo` decrypts it only for the owner and members of the same household (404 for anyone else) with `Cache-Control: private, no-store`.
 
 Reading with Claude:
 
 - No PDF parsing library is needed: the Messages API accepts the PDF as a base64 `document` block and reads both its text and its visual layout, including the legend colors. A 10 MB PDF is about 13.4 MB in base64, under the API request limit; confirm current request and page limits at scaffold time.
-- Request structured output (a tool/JSON schema) describing weeks, days (day and month, no year), times, subject, type, location, teacher, class content, and legend colors. Validate the response with Zod: times, `#RRGGBB` colors, required fields. Reject or ask the user to retry on invalid output.
-- Deterministic rules stay in our code, not in the prompt: year assignment (PRD), conversion from the institution's time zone to UTC, and the re-import diff.
+- The schedule is read in ranges of 6 weeks, one request per range, each asking only for those week numbers; results are merged and sorted on the server. A single response for a full semester (about 276 classes) does not fit one output budget. The PDF block is marked for prompt caching, so later ranges read it from the cache. A range with no weeks ends the loop.
+- Request structured output (`output_config.format` with a JSON schema) describing weeks, days (day and month, no year), times, subject, type, location, teacher, class content, legend color, methodology tag, and a `sideBySide` flag. Validate the response with Zod: times, `#RRGGBB` colors, required fields. An unreadable legend color falls back to the manual-item lavender and overlong descriptive text is clipped, so one odd cell does not fail the whole import.
+- Cost and latency control: the request uses `effort: "low"`, and on `claude-sonnet-5-5` `thinking: {"type": "between_tools"}`, because thinking tokens count toward `max_tokens` and are billed as output. Measured on 2026-10-02 with Sonnet 5.5 and the 24-page cronograma: 5 requests, about 3 minutes, about $0.57 per full import (output tokens are most of it).
+- Deterministic rules stay in our code, not in the prompt: year assignment (PRD), conversion from the institution's time zone to UTC, the methodology tag whitelist (`NAF`, `AIM n`, `CBL`, `TBL`, `OSCE`; anything else is dropped, and a tag read as the class type is shown once), the splitting of stacked classes, and the re-import diff.
+- Splitting of shared slots (product owner, 2026-10-02): classes stacked inside one cell share its time slot in equal consecutive parts, in printed order (16:00–18:00 with two classes becomes 16:00–17:00 and 17:00–18:00). Cells side by side in one day column (`sideBySide: true`) happen at the same time and keep the full slot.
+- Known weak points of the model reading: a week's header can sit at the end of one page and its grid on the next, and narrow side-by-side cells can be assigned to the neighboring day. The prompt states both rules, but the result still has to be checked after an import.
 - Treat the PDF and the model output as untrusted data: the model gets no tools that act, its output is only used after validation, and instructions inside the PDF are ignored.
-- Send only the PDF bytes: no user name, email, or original file name. Set a request timeout. Never log the PDF, the prompt, or the model output. Pin the model version in configuration.
+- Send only the PDF bytes: no user name, email, or original file name. Each request has a 300 second timeout. Never log the PDF, the prompt, or the model output; the logs carry only a reason code, HTTP status, request id, week range and token counts (`cronograma.upload.failed`, `cronograma.read.done`). The model is pinned in `CRONOGRAMA_AI_MODEL`.
 - Tests mock the Claude API; CI and local tests never send real PDFs.
 
 ### Time zones
@@ -237,7 +241,7 @@ Runtime configuration comes from server-only environment variables (never prefix
 - Email delivery provider.
 - Railway account topology, database region, pricing, backup retention, and restore objectives. The production domain is `domiyo.app` (purchased 2026-10-01); whether `www.domiyo.app` redirects to it is still open. `.app` is on the HSTS preload list, so it only works over HTTPS.
 - Exact recurrence materialization strategy after the MVP (Railway cron; time zones are decided above).
-- Claude model, prompt, and structured-output schema for cronograma reading; Anthropic retention terms and cost.
+- Claude model for cronograma reading (`claude-sonnet-5-5` in development; the prompt and output schema are implemented as described above); Anthropic retention terms and cost.
 - Secret manager and backup location for the field-encryption key (scope and mechanism are decided above).
 - CI provider and deployment/rollback workflow; external error monitoring (deferred, needs approval).
 - Data hosting region and LGPD international-transfer review, given Railway's available regions.

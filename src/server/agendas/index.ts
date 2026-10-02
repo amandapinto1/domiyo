@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { agendaItems, agendas, userPhotos, users, type AgendaItemSource } from "@/db/schema";
-import { decryptText, encryptText, reencryptText } from "@/server/crypto";
+import { decryptText, encryptText, reencryptBytea, reencryptText } from "@/server/crypto";
 
 export type HouseholdAgenda = {
   id: string;
@@ -25,6 +25,7 @@ export type AgendaItemRecord = {
   location: string | null;
   teacher: string | null;
   content: string | null;
+  tag: string | null;
 };
 
 export type AgendaItemInput = {
@@ -88,6 +89,7 @@ export async function listAgendaItems(
       location: decryptText(agendaItems.location, agendaItems.keyVersion),
       teacher: decryptText(agendaItems.teacher, agendaItems.keyVersion),
       content: decryptText(agendaItems.content, agendaItems.keyVersion),
+      tag: decryptText(agendaItems.tag, agendaItems.keyVersion),
     })
     .from(agendaItems)
     .innerJoin(agendas, eq(agendas.id, agendaItems.agendaId))
@@ -148,7 +150,9 @@ export async function updateAgendaItem(householdId: string, itemId: string, inpu
       location: encryptText(input.location).ciphertext,
       teacher: reencryptText(agendaItems.teacher, agendaItems.keyVersion),
       content: reencryptText(agendaItems.content, agendaItems.keyVersion),
+      tag: reencryptText(agendaItems.tag, agendaItems.keyVersion),
       notes: reencryptText(agendaItems.notes, agendaItems.keyVersion),
+      importKey: reencryptBytea(agendaItems.importKey, agendaItems.keyVersion),
       keyVersion: title.keyVersion,
       editedManually: true,
     })

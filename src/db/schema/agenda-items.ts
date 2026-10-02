@@ -25,7 +25,10 @@ export const agendaItems = pgTable(
     location: bytea("location"),
     teacher: bytea("teacher"),
     content: bytea("content"),
+    /** Methodology label (NAF, AIM n, CBL, TBL, OSCE) shown as a tag on the card. */
+    tag: bytea("tag"),
     notes: bytea("notes"),
+    importKey: bytea("import_key"),
     keyVersion: integer("key_version").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

@@ -1,0 +1,1 @@
+ALTER TABLE "pending_agenda_imports" ADD COLUMN "read_finished_at" timestamp with time zone;

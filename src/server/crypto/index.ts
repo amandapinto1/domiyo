@@ -37,3 +37,8 @@ export function reencryptText(ciphertext: AnyColumn, keyVersion: AnyColumn): SQL
   const { key } = readKeys();
   return sql`pgp_sym_encrypt(${decryptText(ciphertext, keyVersion)}, ${key}::text, 'cipher-algo=aes256')`;
 }
+
+export function reencryptBytea(ciphertext: AnyColumn, keyVersion: AnyColumn): SQL {
+  const { key } = readKeys();
+  return sql`pgp_sym_encrypt_bytea(${decryptBytea(ciphertext, keyVersion)}, ${key}::text, 'cipher-algo=aes256')`;
+}

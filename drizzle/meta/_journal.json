@@ -29,6 +29,48 @@
       "when": 1790888308411,
       "tag": "0003_agenda_items",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790910833834,
+      "tag": "0004_invitation_token_expiry_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790910921593,
+      "tag": "0005_agenda_cronogram_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790944939287,
+      "tag": "0006_nullable_pending_schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790969277108,
+      "tag": "0007_agenda_item_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790971563148,
+      "tag": "0008_pending_import_failure",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790974663494,
+      "tag": "0009_pending_import_read_finished",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ export function ItemDetail({ item, onEdit }: ItemDetailProps) {
     ["Data e horário", `${formatItemDate(item.date)} · ${item.startTime} – ${item.endTime}`],
     ["Local", item.location],
     [item.isImported ? "Aula" : "Tipo", item.type],
+    ["Metodologia", item.tag],
     ["Professor(a)", item.teacher],
     ["Conteúdo", item.content],
   ];

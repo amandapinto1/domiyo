@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowUpRight, Bell, ChevronLeft, ChevronRight, Plus, Upload } from "lucide-react";
+import { ArrowUpRight, Bell, ChevronLeft, ChevronRight, FileText, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyDay } from "@/components/ui/empty-day";
+import { FormAlert } from "@/components/ui/form-alert";
 import { FOCUS_RING, OUTLINE_PILL } from "@/components/ui/styles";
 import { addDays, formatItemDate, formatMonth, formatMonthYear, formatWeekRange } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
@@ -29,7 +30,7 @@ type Panel = { kind: "detail" | "edit"; itemId: string } | { kind: "create" } | 
 
 /** Agenda screen: week navigation, agenda filter, the day (mobile) or week (desktop) and the item panels. */
 export function AgendaContent({ view }: { view: AgendaView }) {
-  const { householdId, today, selectedDay, week, agendas, selectedAgendaIds, ownAgendaId, items } = view;
+  const { householdId, today, selectedDay, week, agendas, selectedAgendaIds, ownAgendaId, itemsUnavailable, currentCronograma, items } = view;
   const router = useRouter();
   const panelId = useId();
   const [panel, setPanel] = useState<Panel>(null);
@@ -73,11 +74,18 @@ export function AgendaContent({ view }: { view: AgendaView }) {
           <p className="mt-1 text-body-small text-text-secondary">{formatMonthYear(selectedDay)}</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* PDF import is not built yet; the action keeps its place in the header. */}
-          <button type="button" disabled className={`${HEADER_BUTTON} hidden opacity-60 md:flex`}>
+          {currentCronograma && ownAgendaId ? (
+            <a href={`/api/agendas/${encodeURIComponent(ownAgendaId)}/cronograma`} className={`${HEADER_BUTTON} hidden md:flex`}>
+              <FileText aria-hidden="true" className="size-5" strokeWidth={1.75} />
+              Ver cronograma
+            </a>
+          ) : null}
+          {ownAgendaId ? (
+            <Link href={ROUTES.agendaImport(ownAgendaId)} className={`${HEADER_BUTTON} hidden md:flex`}>
             <Upload aria-hidden="true" className="size-5" strokeWidth={1.75} />
-            Importar cronograma <span className="sr-only">(em breve)</span>
-          </button>
+              {currentCronograma ? "Importar novo PDF" : "Importar cronograma"}
+            </Link>
+          ) : null}
           <button type="button" onClick={startCreate} className={`${HEADER_BUTTON} hidden md:flex`}>
             <Plus aria-hidden="true" className="size-5" strokeWidth={1.75} />
             Novo item
@@ -93,6 +101,12 @@ export function AgendaContent({ view }: { view: AgendaView }) {
         </div>
       </header>
 
+      {itemsUnavailable ? (
+        <div className="mt-5">
+          <FormAlert message="Não foi possível carregar os compromissos protegidos. Confira a configuração de criptografia e tente novamente." />
+        </div>
+      ) : null}
+
       <section
         aria-labelledby="agenda-card-title"
         className="mt-6 flex flex-col gap-5 rounded-xl bg-white p-5 md:mt-8 lg:p-6 dark:bg-lavender-900"
@@ -102,15 +116,11 @@ export function AgendaContent({ view }: { view: AgendaView }) {
             {formatMonth(selectedDay)}
           </h2>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled
-              aria-label="Importar cronograma (em breve)"
-              title="Importar cronograma (em breve)"
-              className={`${ICON_BUTTON} md:hidden`}
-            >
+            {ownAgendaId ? (
+              <Link href={ROUTES.agendaImport(ownAgendaId)} aria-label="Importar cronograma" title="Importar cronograma" className={`${ICON_BUTTON} md:hidden`}>
               <Upload aria-hidden="true" className="size-5" strokeWidth={1.75} />
-            </button>
+              </Link>
+            ) : null}
             <button type="button" onClick={startCreate} aria-label="Novo item" title="Novo item" className={`${ICON_BUTTON} md:hidden`}>
               <Plus aria-hidden="true" className="size-5" strokeWidth={1.75} />
             </button>
@@ -134,6 +144,13 @@ export function AgendaContent({ view }: { view: AgendaView }) {
           />
           {weekNavigation}
         </div>
+
+        {currentCronograma && ownAgendaId ? (
+          <a href={`/api/agendas/${encodeURIComponent(ownAgendaId)}/cronograma`} className="inline-flex min-h-11 w-fit items-center gap-2 text-body-small font-medium text-lavender-900 underline underline-offset-4 dark:text-lime-500 lg:hidden">
+            <FileText aria-hidden="true" className="size-5" />
+            Ver cronograma atual
+          </a>
+        ) : null}
 
         <nav aria-label="Dias da semana" className="lg:hidden">
           <ul className="flex justify-between gap-1">
