@@ -15,7 +15,7 @@ test("Perfil shows the account and the household", async ({ page }) => {
   const household = page.getByRole("region", { name: "Meu household" });
   await expect(household.getByText("1 membro", { exact: true })).toBeVisible();
   await expect(household.getByRole("list", { name: "Membros" })).toContainText("Você · admin");
-  await expect(household.getByText("Link de convite")).toBeVisible();
+  await expect(household.getByText("Link de convite", { exact: true }).first()).toBeVisible();
 
   const navigation = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(navigation.getByRole("link", { name: "Perfil" })).toHaveAttribute("aria-current", "page");
@@ -110,6 +110,9 @@ test.describe.serial("household management", () => {
     const partner = await partnerContext.newPage();
     await partner.goto(link);
     await partner.getByRole("button", { name: "Aceitar convite" }).click();
+    await expect(partner).toHaveURL(/\/sign-up\?next=/);
+    await partner.getByRole("link", { name: "Entre" }).click();
+    await expect(partner).toHaveURL(/\/login\?next=/);
     await signIn(partner, E2E_PARTNER);
     await partner.getByRole("button", { name: "Aceitar convite" }).click();
     await expect(partner).toHaveURL(/\/home$/);

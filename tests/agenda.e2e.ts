@@ -70,6 +70,9 @@ test.describe.serial("agenda items", () => {
     await expect(closeControls).toHaveCount(2);
     await expect(closeControls.first()).toBeVisible();
     await expect(closeControls.nth(1)).toBeHidden();
+    await detail.evaluate(async (dialog) => {
+      await Promise.all(dialog.getAnimations().map((animation) => animation.finished));
+    });
 
     const handleBounds = await closeControls.first().boundingBox();
     if (!handleBounds) throw new Error("The dialog handle should be visible on mobile.");
