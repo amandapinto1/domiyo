@@ -35,7 +35,7 @@ The PWA may cache its static application shell for installation and faster repea
 | Local development | Docker Compose runs PostgreSQL (with `pgcrypto`) for development and tests, with separate databases; the Next.js app runs on the host with `pnpm` | Approved 2026-09-30 |
 | Cronograma reading | Anthropic Claude API reads the uploaded PDF (native PDF input, no PDF parsing library) and returns structured items; our code validates them and applies year assignment, time zones, and the re-import diff. See "Cronograma upload and reading" | Approved by the product owner 2026-09-30 (paid API and new data processor); confirm terms and cost before production |
 | Deployment | Railway: one Next.js service (`next start`, Node.js) plus managed PostgreSQL, served at `https://domiyo.app` | Approved 2026-09-30; domain `domiyo.app` purchased (product owner, 2026-10-01); confirm pricing and data region before launch |
-| Email delivery | Provider-agnostic adapter (SMTP first, console in development); see "Email delivery" | Planned; provider not selected, no paid provider without approval |
+| Email delivery | Provider-agnostic SMTP adapter, with console in development; see "Email delivery" | Brevo selected for transactional email on its free plan (2026-10-02); review data-processing terms and region before production |
 | File storage | Cronograma PDFs and profile photos stored encrypted in PostgreSQL (`bytea`) for the MVP; see "Sensitive data and field-level encryption" | Planned; avoids adding a storage service |
 | Error monitoring | Structured server logs without personal data in the MVP. An external service such as Sentry is deferred: it is a new data processor and needs approval plus a privacy review | Deferred 2026-09-30 |
 | Design source | Product-owner-created screens and design decisions supplied as documents in `docs/design/` | Planned handoff; agents may use the Figwright MCP for Figma, no other MCP integration |
@@ -162,12 +162,12 @@ Reading with Claude:
 
 ### Email delivery
 
-The provider is not chosen yet. The integration is built so the owner only has to fill in keys:
+Brevo is selected for transactional email on its free plan. The integration remains provider-agnostic so the owner can change SMTP providers without changing email templates or business logic:
 
-- The server depends on an `EmailSender` interface (`send({ to, subject, html, text })`), with two adapters: `console` (development and tests: logs a redacted summary, never the full body with links in production) and `smtp` (works with most providers, such as Brevo, Resend, Amazon SES or Mailgun, through their SMTP credentials). A provider-specific HTTP adapter can be added later behind the same interface.
+- The server depends on an `EmailSender` interface (`send({ to, subject, html, text })`), with two adapters: `console` (development and tests: logs a redacted summary, never the full body with links in production) and `smtp` (Nodemailer, compatible with Brevo, Resend, Amazon SES, and Mailgun). For Brevo, use `smtp-relay.brevo.com` on port `587` with STARTTLS and an SMTP key, not an API key. A provider-specific HTTP adapter can be added later behind the same interface.
 - Emails in the MVP (pt-BR, each with HTML and plain-text versions): email confirmation at sign-up, household invitation, password reset, and "sua senha foi alterada" (security notice after a reset). Layout and copy: `docs/design/email/README.md` and the Figma page "E-mails"; rules in `docs/DESIGN_SYSTEM.md` › "Email templates".
 - Links in emails use `APP_PUBLIC_URL`; tokens expire and are single-use (see "Authentication, Authorization, and Invitations"). No tracking pixels or click tracking.
-- Before production: confirm the provider's data-processing terms and region (LGPD), configure SPF, DKIM, and DMARC for the sending domain, and get approval for any cost.
+- Before production: review Brevo's data-processing terms and processing region (LGPD), authenticate the sending subdomain with the DNS records shown in Brevo, and get approval before moving to any paid plan.
 
 ### Configuration
 
@@ -183,9 +183,9 @@ Runtime configuration comes from server-only environment variables (never prefix
 | `FIELD_ENCRYPTION_KEY` | Current field-encryption key (32 random bytes, base64) |
 | `FIELD_ENCRYPTION_KEY_VERSION` | Integer version of the current key |
 | `FIELD_ENCRYPTION_KEY_PREVIOUS` | Previous key, only during rotation |
-| `EMAIL_TRANSPORT` | `console` or `smtp` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP credentials from the chosen provider |
-| `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Sender, for example `nao-responda@domiyo.app` and `Domiyo` |
+| `EMAIL_TRANSPORT` | `console` for local development or `smtp` to send through Brevo |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP server settings and credentials; Brevo uses `smtp-relay.brevo.com`, port `587`, `false`, its SMTP login, and an SMTP key |
+| `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Verified sender, for example `nao-responda@notify.domiyo.app` and `Domiyo` |
 | `ANTHROPIC_API_KEY` | Claude API key for cronograma reading |
 | `CRONOGRAMA_AI_MODEL` | Pinned Claude model id used for cronograma reading |
 

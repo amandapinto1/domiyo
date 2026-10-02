@@ -195,7 +195,7 @@ Review the targets after the first usability sessions; do not add third-party an
 - Recipe ingredient quantities/units and duplicate consolidation in the grocery list.
 - Grocery-list lifecycle across weeks and handling/removal of purchased items.
 - Notification read state, retention, and whether any events beyond task assignments notify members.
-- Email delivery provider. The integration is planned to be provider-agnostic (`ARCHITECTURE.md` › "Email delivery"); only the provider and its keys are missing. Blocks sending email confirmation, invitations by email, and password-reset emails in the MVP.
+- Email delivery uses the provider-agnostic SMTP integration with Brevo selected on its free plan (2026-10-02). Review Brevo's data-processing terms and region before production; paid plans still require approval.
 - Baseline and target values for success metrics after initial usability testing.
 - What happens to a departing member's tasks, bills, and recipes when they leave or are removed from a household (not needed for the MVP: a departing member's agenda is deleted).
 - Data hosting region and whether LGPD international-transfer safeguards are needed, given available provider regions (needed before production, not before development).
