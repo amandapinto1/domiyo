@@ -1,14 +1,21 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { formatShortDate } from "@/lib/dates";
+import { ROUTES } from "@/lib/routes";
 import { requireCurrentMembership, requireSession } from "@/server/auth";
 import { getHouseholdOverview, getSentInvitations } from "@/server/households";
 import { summarizeInvitation, type InvitationItemView } from "../_components/invitation-summary";
 
-export type MemberView = { memberId: string; firstName: string; roleLabel: string; isYou: boolean };
+export type MemberView = {
+  memberId: string;
+  firstName: string;
+  roleLabel: string;
+  isYou: boolean;
+  photoUrl: string | null;
+};
 
 export type ProfileView = {
-  account: { firstName: string; surname: string; email: string };
+  account: { firstName: string; surname: string; email: string; photoUrl: string | null };
   household: {
     id: string;
     name: string;
@@ -27,15 +34,26 @@ export async function getProfileView(): Promise<ProfileView> {
   if (!overview) notFound();
 
   const members = overview.members
-    .map(({ memberId, userId: memberUserId, firstName, role }) => {
+    .map(({ memberId, userId: memberUserId, firstName, role, photoUpdatedAt }) => {
       const isYou = memberUserId === userId;
       const roleLabel = role === "admin" ? "admin" : "membro";
-      return { memberId, firstName, isYou, roleLabel: isYou ? `Você · ${roleLabel}` : capitalize(roleLabel) };
+      return {
+        memberId,
+        firstName,
+        isYou,
+        roleLabel: isYou ? `Você · ${roleLabel}` : capitalize(roleLabel),
+        photoUrl: photoUpdatedAt ? ROUTES.userPhoto(memberUserId, photoUpdatedAt.getTime()) : null,
+      };
     })
     .sort((first, second) => Number(second.isYou) - Number(first.isYou));
 
   return {
-    account: { firstName: session.user.name, surname: session.user.surname, email: session.user.email },
+    account: {
+      firstName: session.user.name,
+      surname: session.user.surname,
+      email: session.user.email,
+      photoUrl: members.find((member) => member.isYou)?.photoUrl ?? null,
+    },
     household: {
       id: householdId,
       name: overview.name,

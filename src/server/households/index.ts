@@ -7,6 +7,7 @@ import {
   householdInvitations,
   householdMembers,
   households,
+  userPhotos,
   users,
   type InvitationStatus,
 } from "@/db/schema";
@@ -15,7 +16,15 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type Membership = { householdId: string; role: string };
 export type MemberIdentity = { id: string; firstName: string };
 export type InvitationView = { householdName: string; inviterName: string; expiresAt: Date };
-export type HouseholdMember = { memberId: string; userId: string; firstName: string; surname: string; role: string };
+export type HouseholdMember = {
+  memberId: string;
+  userId: string;
+  firstName: string;
+  surname: string;
+  role: string;
+  /** Null when the member has no profile photo. */
+  photoUpdatedAt: Date | null;
+};
 export type HouseholdOverview = { name: string; members: HouseholdMember[] };
 export type SentInvitation = {
   id: string;
@@ -173,9 +182,11 @@ export async function getHouseholdOverview(householdId: string): Promise<Househo
       firstName: users.name,
       surname: users.surname,
       role: householdMembers.role,
+      photoUpdatedAt: userPhotos.updatedAt,
     })
     .from(householdMembers)
     .innerJoin(users, eq(users.id, householdMembers.userId))
+    .leftJoin(userPhotos, eq(userPhotos.userId, householdMembers.userId))
     .where(eq(householdMembers.householdId, householdId))
     .orderBy(asc(householdMembers.createdAt));
   return { name: household.name, members };

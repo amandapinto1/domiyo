@@ -15,6 +15,20 @@
       "when": 1790827203464,
       "tag": "0001_households",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790885786919,
+      "tag": "0002_profile_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790888308411,
+      "tag": "0003_agenda_items",
+      "breakpoints": true
     }
   ]
 }

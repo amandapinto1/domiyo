@@ -9,6 +9,7 @@ export const E2E_MEMBER = { email: "e2e.bia@example.com", password: PASSWORD, na
 export const E2E_NEWCOMER = { email: "e2e.carla@example.com", password: PASSWORD, name: "Carla", surname: "Souza" };
 export const E2E_OWNER = { email: "e2e.olga@example.com", password: PASSWORD, name: "Olga", surname: "Ramos" };
 export const E2E_PARTNER = { email: "e2e.paula@example.com", password: PASSWORD, name: "Paula", surname: "Dias" };
+export const E2E_PLANNER = { email: "e2e.rita@example.com", password: PASSWORD, name: "Rita", surname: "Melo" };
 
 export default async function globalSetup(config: FullConfig) {
   const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -18,13 +19,15 @@ export default async function globalSetup(config: FullConfig) {
     execSync(command, { env: { ...process.env, DATABASE_URL: databaseUrl }, encoding: "utf8" }).trim();
 
   run("pnpm -s db:migrate:deploy");
-  for (const user of [E2E_USER, E2E_INVITER, E2E_MEMBER, E2E_NEWCOMER, E2E_OWNER, E2E_PARTNER]) {
+  for (const user of [E2E_USER, E2E_INVITER, E2E_MEMBER, E2E_NEWCOMER, E2E_OWNER, E2E_PARTNER, E2E_PLANNER]) {
     run(`pnpm -s user:create ${user.email} ${user.password} "${user.name}" "${user.surname}"`);
   }
   // Bia gets a household of her own; the invitation under test comes from Andréa's household.
   run(`pnpm -s invite:create ${E2E_MEMBER.email} "Casa da Bia"`);
   // Olga's household is where the Perfil flows invite, remove and leave.
   run(`pnpm -s invite:create ${E2E_OWNER.email} "Casa da Olga"`);
+  // Rita's household is where the Agenda flows create, edit and delete items.
+  run(`pnpm -s invite:create ${E2E_PLANNER.email} "Casa da Rita"`);
   process.env.E2E_INVITE_PATH = run(`pnpm -s invite:create ${E2E_INVITER.email} "Casa da Andréa"`).split("\n").at(-1);
 
   // The dev server compiles routes on first request; warm the auth API so the first form submit is not slow.

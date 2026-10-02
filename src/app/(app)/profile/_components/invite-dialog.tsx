@@ -10,9 +10,9 @@ import { dangerLinkClassName, linkClassName } from "@/components/ui/link";
 import { createInvitationLinkAction } from "../_actions/create-invitation-link";
 import { inviteByEmailAction } from "../_actions/invite-by-email";
 import { revokeInvitationAction } from "../_actions/revoke-invitation";
-import { Dialog } from "./dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { inviteEmailSchema, type InviteEmailValues } from "./schemas";
-import { OUTLINE_PILL, PRIMARY_PILL } from "./styles";
+import { OUTLINE_PILL, PRIMARY_PILL } from "@/components/ui/styles";
 
 type InviteDialogProps = { householdId: string; isOpen: boolean; onClose: () => void };
 

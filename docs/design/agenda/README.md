@@ -47,3 +47,14 @@ Dark versions follow the dark mapping in `docs/design/inicio/README.md` (sheet `
 - The PDF is stored encrypted (see `docs/ARCHITECTURE.md` › "Sensitive data and field-level encryption"). An authenticated Route Handler decrypts it only for an authorized household member and streams it with `Content-Type: application/pdf`, `Content-Disposition: inline` (Abrir) or `attachment` (Baixar), and `Cache-Control: no-store`.
 - Never expose a public or guessable file URL. Use the agenda's stable public identifier on an authenticated Route Handler.
 - The file name is decrypted server-side and sanitized in the `Content-Disposition` header.
+
+## Implementation notes (2026-10-01)
+
+Built: the Agenda screen (mobile day timeline, week grid from `lg`), the agenda multiselect, week navigation, "Escolher data", item detail, "Editar item", "Excluir item", loading, empty and error states. Choices the Figma frames do not cover, for product owner review:
+
+- **"Novo item" trigger (not designed):** a "+" circular button in the mobile card header and a labeled "Novo item" button in the desktop header; the empty state also offers "Adicionar item". The form is "Editar item" titled "Novo item", with a "Pertence a" select (preselects the member's own agenda).
+- **Manual item color:** `lavender.300` (`#B9B8E1`), since manual items have no PDF legend color.
+- **Permissions:** every household member can create, edit and delete items in any of the household's agendas.
+- **Not built yet:** "Importar cronograma" (shown disabled, "em breve"), "Ver cronograma"/"Cronogramas" (needs stored PDFs) and the conflict modal (part of the re-import).
+- "Escolher data" uses the bottom sheet on mobile and a centered dialog on desktop, not a popover.
+- State lives in the URL: `?day=YYYY-MM-DD&agendas=id1,id2` (no `agendas` means every agenda).

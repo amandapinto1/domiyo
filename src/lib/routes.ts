@@ -10,6 +10,8 @@ export const ROUTES = {
   agenda: "/agenda",
   profile: "/profile",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
+  /** `version` changes when the photo does, so the browser never shows a stale one. */
+  userPhoto: (userId: string, version: number) => `/api/users/${encodeURIComponent(userId)}/photo?v=${version}`,
 } as const;
 
 /** Accepts only same-site relative paths, so `next` can never redirect off the app (open redirect). */

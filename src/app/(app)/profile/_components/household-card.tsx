@@ -10,10 +10,10 @@ import { removeMemberAction } from "../_actions/remove-member";
 import { revokeInvitationAction } from "../_actions/revoke-invitation";
 import type { ProfileView } from "../_data-access/get-profile-view";
 import { Avatar } from "./avatar";
-import { ConfirmDialog } from "./confirm-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { InvitationItemView, InvitationTone } from "./invitation-summary";
 import { InviteDialog } from "./invite-dialog";
-import { CARD, FOCUS_RING } from "./styles";
+import { CARD, FOCUS_RING } from "@/components/ui/styles";
 
 type Household = ProfileView["household"];
 type MemberView = Household["members"][number];
@@ -56,7 +56,7 @@ export function HouseholdCard({ household }: { household: Household }) {
       <ul aria-label="Membros" className="mt-4 flex flex-col gap-4">
         {members.map((member) => (
           <li key={member.memberId} className="flex items-center gap-3">
-            <Avatar firstName={member.firstName} size="small" isYou={member.isYou} />
+            <Avatar firstName={member.firstName} size="small" isYou={member.isYou} photoUrl={member.photoUrl} />
             <div className="min-w-0 flex-1">
               <p className="text-body font-medium break-words text-text">{member.firstName}</p>
               <p className="text-body-small text-text-secondary">{member.roleLabel}</p>

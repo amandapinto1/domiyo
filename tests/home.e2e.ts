@@ -17,7 +17,8 @@ test.beforeEach(async ({ page }) => {
 test("Início greets the member and shows today's empty agenda", async ({ page }) => {
   await expect(page.getByRole("heading", { name: `Olá, ${E2E_MEMBER.name}` })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Agenda de hoje" })).toBeVisible();
-  await expect(page.getByText("Nenhum compromisso hoje.")).toBeVisible();
+  await expect(page.getByText("Nenhum compromisso no dia selecionado")).toBeVisible();
+  await expect(page.getByText(/Importe um cronograma/)).toHaveCount(0);
 
   const navigation = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(navigation.getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
@@ -37,12 +38,12 @@ test("the week strip selects another day", async ({ page }) => {
   await otherDay.click();
   await expect(page).toHaveURL(/\/home\?day=\d{4}-\d{2}-\d{2}$/);
   await expect(otherDay).toHaveAttribute("aria-current", "date");
-  await expect(page.getByText("Nenhum compromisso neste dia.")).toBeVisible();
+  await expect(page.getByText("Nenhum compromisso no dia selecionado")).toBeVisible();
 });
 
 test("an invalid day falls back to today", async ({ page }) => {
   await page.goto("/home?day=2026-02-30");
-  await expect(page.getByText("Nenhum compromisso hoje.")).toBeVisible();
+  await expect(page.getByText("Nenhum compromisso no dia selecionado")).toBeVisible();
 });
 
 test("the sidebar collapses to icons on desktop", async ({ page, isMobile }) => {

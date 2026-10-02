@@ -60,3 +60,85 @@ export function weekOf(day: string): WeekDay[] {
     };
   });
 }
+
+export function addDays(day: string, days: number): string {
+  const date = toUtcDate(day);
+  date.setUTCDate(date.getUTCDate() + days);
+  return toCalendarDate(date);
+}
+
+/** "Segunda, 28 de setembro": the long date without "-feira", as agenda items show it. */
+export function formatItemDate(day: string): string {
+  return formatLongDate(day).replace("-feira", "");
+}
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** "Setembro". */
+export function formatMonth(day: string): string {
+  return capitalize(new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", month: "long" }).format(toUtcDate(day)));
+}
+
+/** "Setembro 2026". */
+export function formatMonthYear(day: string): string {
+  return `${formatMonth(day)} ${day.slice(0, 4)}`;
+}
+
+/** "Semana de 27 set – 3 out", or "Semana de 6 – 12 set" inside one month. */
+export function formatWeekRange(firstDay: string, lastDay: string): string {
+  const short = (day: string) => formatShortDate(toUtcDate(day), "UTC");
+  const start = firstDay.slice(0, 7) === lastDay.slice(0, 7) ? String(Number(firstDay.slice(8))) : short(firstDay);
+  return `Semana de ${start} – ${short(lastDay)}`;
+}
+
+export type MonthDay = { date: string; dayOfMonth: number; isInMonth: boolean };
+
+/** Sunday-first weeks covering the month of `day`, padded with the neighboring months' days. */
+export function monthGrid(day: string): MonthDay[][] {
+  const month = day.slice(0, 7);
+  const weeks: MonthDay[][] = [];
+  for (let weekStart = weekOf(`${month}-01`)[0].date; weekStart.slice(0, 7) <= month; weekStart = addDays(weekStart, DAYS_IN_WEEK)) {
+    weeks.push(
+      weekOf(weekStart).map(({ date, dayOfMonth }) => ({ date, dayOfMonth, isInMonth: date.slice(0, 7) === month })),
+    );
+  }
+  return weeks;
+}
+
+/** The first day of the month before (`-1`) or after (`1`) the month of `day`. */
+export function shiftMonth(day: string, months: number): string {
+  const date = toUtcDate(`${day.slice(0, 7)}-01`);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return toCalendarDate(date);
+}
+
+/** "07:00": the wall-clock time of `instant` in `timeZone`. */
+export function timeIn(timeZone: string, instant: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
+    instant,
+  );
+}
+
+function offsetMs(timeZone: string, instant: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((entry) => entry.type === type)?.value);
+  const wallClock = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"), part("second"));
+  return wallClock - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+/** The instant when the clock in `timeZone` shows `day` at `time` ("HH:mm"). */
+export function zonedTimeToUtc(day: string, time: string, timeZone: string): Date {
+  const [hours, minutes] = time.split(":").map(Number);
+  const asUtc = toUtcDate(day).getTime() + (hours * 60 + minutes) * 60_000;
+  const firstGuess = asUtc - offsetMs(timeZone, new Date(asUtc));
+  return new Date(asUtc - offsetMs(timeZone, new Date(firstGuess)));
+}

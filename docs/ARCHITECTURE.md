@@ -126,6 +126,7 @@ Mechanism:
 - Owner read access: a function in a separate `admin` schema, for example `admin.agenda_items_readable(p_key text)`, returns agenda items with decrypted columns. `EXECUTE` is granted only to a dedicated database role used by the owner (never to the application role), the function is `SECURITY INVOKER`, and it returns nothing useful without the correct key. Do not create a plain view that decrypts, because a view would need the key stored in the database.
 - Because the key travels inside every encrypting or decrypting query, disable statement and parameter logging for both the application role and the owner role (`log_statement = 'none'`, `log_min_duration_statement = -1`, `log_parameter_max_length = 0`, `log_parameter_max_length_on_error = 0`, no `pg_stat_statements` capture of parameters), check that the managed PostgreSQL's own logs follow these settings, and never paste the key into shared scripts, tickets, or chat. Keep a copy of the key in the owner's password manager: losing it makes the encrypted data unrecoverable.
 - Encrypted columns cannot be searched or sorted by the database; the MVP only needs date-range queries, which use the plaintext timestamps.
+- Implemented 2026-10-01 in `agenda_items` (migration `0003_agenda_items`): each content column is `pgp_sym_encrypt` ciphertext (`bytea`) with one `key_version` per row; editing an item re-encrypts every content column with the current key. Helpers: `src/server/crypto`; domain functions: `src/server/agendas`.
 - Key rotation re-encryption runs as a one-off server-side script started by the owner, not a scheduled job.
 
 ### Cronograma upload and reading
@@ -138,7 +139,7 @@ Server Actions accept at most 1 MB per request by default, and raising `serverAc
 4. It sends the PDF to the Claude API (below) and stores a pending import: the encrypted PDF plus the validated items, linked to the agenda. A pending import is an upload the user has not confirmed yet. It expires after 3 days (product owner decision, 2026-09-30): expired imports cannot be confirmed, and each new upload deletes every expired pending import, so the MVP needs no scheduled job.
 5. The confirmation screen shows the parsed result. Confirming calls a small Server Action with the pending import id; only then are agenda items written (PRD: nothing is written before confirmation).
 
-Profile photos use the same pattern (Route Handler, size and magic-byte checks) before being resized.
+Profile photos use the same pattern (Route Handler, size and magic-byte checks). Implemented 2026-10-01: the browser crops the photo in "Ajustar foto" and encodes a 512×512 JPEG, so no server-side image library is needed; `PUT /api/profile/photo` checks `Origin`, the session, the 1 MB limit, the JPEG signature and the 512×512 frame header, then stores it in `user_photos` encrypted with `pgp_sym_encrypt_bytea` (helpers in `src/server/crypto`). `GET /api/users/[userId]/photo` decrypts it only for the owner and members of the same household (404 for anyone else) with `Cache-Control: private, no-store`.
 
 Reading with Claude:
 

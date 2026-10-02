@@ -9,7 +9,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { updateNameAction } from "../_actions/update-name";
 import { updateNameSchema, type UpdateNameValues } from "./schemas";
-import { CARD, ICON_BUTTON, OUTLINE_PILL, PRIMARY_PILL } from "./styles";
+import { CARD, ICON_BUTTON, OUTLINE_PILL, PRIMARY_PILL } from "@/components/ui/styles";
 
 type AccountCardProps = { firstName: string; surname: string; email: string };
 

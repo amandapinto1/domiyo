@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { calendarDateIn, formatLongDate, formatShortDate, weekOf } from "./dates";
+import {
+  calendarDateIn,
+  formatItemDate,
+  formatLongDate,
+  formatMonthYear,
+  formatShortDate,
+  formatWeekRange,
+  monthGrid,
+  shiftMonth,
+  timeIn,
+  weekOf,
+  zonedTimeToUtc,
+} from "./dates";
 
 describe("calendarDateIn", () => {
   it("uses the calendar date of the given time zone, not UTC", () => {
@@ -41,5 +53,36 @@ describe("weekOf", () => {
 
   it("starts on the day itself when it is a Sunday", () => {
     expect(weekOf("2026-09-27")[0].date).toBe("2026-09-27");
+  });
+});
+
+describe("agenda date helpers", () => {
+  it("formats the week range across and inside a month", () => {
+    expect(formatWeekRange("2026-09-27", "2026-10-03")).toBe("Semana de 27 set – 3 out");
+    expect(formatWeekRange("2026-09-06", "2026-09-12")).toBe("Semana de 6 – 12 set");
+  });
+
+  it("formats item dates and months", () => {
+    expect(formatItemDate("2026-09-28")).toBe("Segunda, 28 de setembro");
+    expect(formatMonthYear("2026-09-28")).toBe("Setembro 2026");
+  });
+
+  it("builds a Sunday-first month grid with the neighboring days", () => {
+    const grid = monthGrid("2026-09-15");
+    expect(grid).toHaveLength(5);
+    expect(grid[0][0]).toEqual({ date: "2026-08-30", dayOfMonth: 30, isInMonth: false });
+    expect(grid[4][6]).toEqual({ date: "2026-10-03", dayOfMonth: 3, isInMonth: false });
+  });
+
+  it("shifts months across a year boundary", () => {
+    expect(shiftMonth("2026-12-31", 1)).toBe("2027-01-01");
+    expect(shiftMonth("2026-01-15", -1)).toBe("2025-12-01");
+  });
+
+  it("converts wall-clock times in the app time zone to instants and back", () => {
+    const instant = zonedTimeToUtc("2026-09-28", "07:00", "America/Fortaleza");
+    expect(instant.toISOString()).toBe("2026-09-28T10:00:00.000Z");
+    expect(timeIn("America/Fortaleza", instant)).toBe("07:00");
+    expect(zonedTimeToUtc("2026-07-01", "09:00", "America/New_York").toISOString()).toBe("2026-07-01T13:00:00.000Z");
   });
 });

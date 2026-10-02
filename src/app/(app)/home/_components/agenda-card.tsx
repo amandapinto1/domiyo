@@ -50,10 +50,12 @@ export function AgendaCard({ today, selectedDay, itemCount }: AgendaCardProps) {
                       : "bg-lavender-100 text-text dark:bg-lavender-800"
                   }`}
                 >
-                  {isSelected ? (
+                  {day.date === today ? (
                     <span
                       aria-hidden="true"
-                      className="absolute top-0.75 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-lime-500 dark:bg-lavender-900"
+                      className={`absolute top-0.75 left-1/2 size-1.5 -translate-x-1/2 rounded-full ${
+                        isSelected ? "bg-lime-500 dark:bg-lavender-900" : "bg-lavender-700 dark:bg-lime-500"
+                      }`}
                     />
                   ) : null}
                   <span aria-hidden="true" className="text-numeric-emphasis font-medium">

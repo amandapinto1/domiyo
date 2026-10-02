@@ -19,6 +19,11 @@ test("Perfil shows the account and the household", async ({ page }) => {
 
   const navigation = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(navigation.getByRole("link", { name: "Perfil" })).toHaveAttribute("aria-current", "page");
+
+  await page.getByRole("button", { name: "Sair", exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/profile");
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 // These flows change data, so they run once (desktop) and in order.
@@ -67,6 +72,29 @@ test.describe.serial("household management", () => {
     await expect(household.getByText(email)).toBeVisible();
     await household.getByRole("button", { name: `Cancelar convite de ${email}` }).click();
     await expect(household.getByText(email)).toBeHidden();
+  });
+
+  test("changes the photo, which only the household can see", async ({ page, browser }, testInfo) => {
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Trocar foto" }).click();
+    await (await chooser).setFiles("src/app/apple-icon.png");
+    const dialog = page.getByRole("dialog", { name: "Ajustar foto" });
+    await dialog.getByRole("button", { name: "Aumentar zoom" }).click();
+    await dialog.getByRole("group", { name: /Posição da foto/ }).press("ArrowLeft");
+    await dialog.getByRole("button", { name: "Confirmar" }).click();
+    await expect(dialog).toBeHidden();
+
+    const photo = page.locator('main img[src*="/photo"]').first();
+    await expect(photo).toBeVisible();
+    const photoPath = await photo.getAttribute("src");
+    expect((await page.request.get(photoPath ?? "")).status()).toBe(200);
+
+    // A member of another household gets the same answer as for a missing photo.
+    const outsiderCookies = await sessionCookies(browser, testInfo.project.use.baseURL, E2E_MEMBER);
+    const outsider = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
+    await outsider.addCookies(outsiderCookies);
+    expect((await outsider.request.get(photoPath ?? "")).status()).toBe(404);
+    await outsider.close();
   });
 
   test("an invitation link brings a member in, who can then be removed", async ({ page, browser }) => {

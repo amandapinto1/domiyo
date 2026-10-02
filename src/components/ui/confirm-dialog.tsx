@@ -3,8 +3,9 @@
 import { useId, useState, useTransition } from "react";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Dialog } from "./dialog";
-import type { ProfileActionResult } from "./schemas";
 import { DANGER_PILL, OUTLINE_PILL } from "./styles";
+
+export type ConfirmResult = { ok: true } | { ok: false; message: string };
 
 type ConfirmDialogProps = {
   isOpen: boolean;
@@ -14,10 +15,10 @@ type ConfirmDialogProps = {
   confirmLabel: string;
   pendingLabel: string;
   /** Resolves with a result; an action that redirects may resolve with nothing. */
-  onConfirm: () => Promise<ProfileActionResult | void>;
+  onConfirm: () => Promise<ConfirmResult | void>;
 };
 
-/** Destructive confirmation ("Remover membro", "Sair do household"); Cancelar gets focus first. */
+/** Destructive confirmation ("Remover membro", "Excluir item"); Cancelar gets focus first. */
 export function ConfirmDialog({ isOpen, onClose, title, description, confirmLabel, pendingLabel, onConfirm }: ConfirmDialogProps) {
   const id = useId();
   const [error, setError] = useState<string | null>(null);

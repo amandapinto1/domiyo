@@ -9,10 +9,10 @@ import { getHomeView } from "./_data-access/get-home-view";
 const daySchema = z.iso.date();
 
 export default async function HomePage({ searchParams }: { searchParams: SearchParams }) {
-  const { firstName, items } = await getHomeView();
   const today = calendarDateIn(APP_TIME_ZONE);
   const requestedDay = daySchema.safeParse((await searchParams).day);
   const selectedDay = requestedDay.success ? requestedDay.data : today;
+  const { firstName, items } = await getHomeView(selectedDay);
 
   return (
     <main className="flex min-h-dvh flex-col px-6 pt-14 pb-28 md:px-10 md:pt-12 md:pb-12 lg:px-16">
@@ -35,7 +35,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       <div className="mt-6 flex-1 md:mt-8 xl:grid xl:grid-cols-[37.5rem_minmax(0,1fr)] xl:gap-8">
         <div className="md:max-w-150">
           <AgendaCard today={today} selectedDay={selectedDay} itemCount={items.length} />
-          <Timeline items={items} isToday={selectedDay === today} />
+          <Timeline items={items} />
         </div>
 
         {/* Reserved for the bills/tasks summaries; what comes first is an open product decision. */}
