@@ -59,7 +59,7 @@ export const householdInvitations = pgTable(
     // Null for shareable link invitations.
     email: text("email"),
     // Only the SHA-256 of the token is stored (docs/ARCHITECTURE.md).
-    tokenHash: text("token_hash").notNull().unique(),
+    tokenHash: text("token_hash").unique(),
     status: text("status").$type<InvitationStatus>().notNull().default("pending"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     respondedAt: timestamp("responded_at", { withTimezone: true }),
@@ -67,6 +67,7 @@ export const householdInvitations = pgTable(
   },
   (table) => [
     index("household_invitations_household_id_idx").on(table.householdId),
+    index("household_invitations_expires_at_idx").on(table.expiresAt),
     check("household_invitations_status_check", sql`${table.status} in ('pending', 'accepted', 'declined', 'revoked')`),
   ],
 );

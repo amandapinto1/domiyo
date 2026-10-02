@@ -1,12 +1,13 @@
 // Creates a household invitation link without the Perfil UI, for local development and e2e setup.
 // Gives the inviter a household first if needed.
 // Usage: pnpm invite:create <inviterEmail> [householdName]
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { users } from "../src/db/schema/auth.ts";
 import { agendas, householdInvitations, householdMembers, households } from "../src/db/schema/households.ts";
+import { generateInvitationToken } from "../src/server/households/invitation-token.ts";
 
 // ponytail: invitation lifetime is not decided yet (docs/PRD.md); 7 days until it is.
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -21,7 +22,7 @@ if (!rawEmail) throw new Error("Usage: pnpm invite:create <inviterEmail> [househ
 const client = postgres(databaseUrl, { max: 1 });
 
 try {
-  const token = randomBytes(32).toString("base64url");
+  const token = generateInvitationToken();
   await drizzle(client).transaction(async (tx) => {
     const [inviter] = await tx
       .select({ id: users.id, name: users.name })

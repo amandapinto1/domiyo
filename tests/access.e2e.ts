@@ -15,6 +15,8 @@ const invitePath = () => {
 
 test("sign-up answers with the confirmation step", async ({ page }) => {
   await page.goto("/sign-up");
+  await expect(page.getByText("Já tem uma conta?")).toBeVisible();
+  await expect(page.getByText("Já tem um login?")).toBeHidden();
   await page.getByRole("button", { name: "Criar conta" }).click();
   await expect(page.getByText("Informe seu nome.")).toBeVisible();
 
@@ -61,7 +63,11 @@ test.describe.serial("household access", () => {
     await expect(page.getByText("Andréa Costa convidou você")).toBeVisible();
 
     await page.getByRole("button", { name: "Aceitar convite" }).click();
+    await expect(page).toHaveURL(/\/sign-up\?next=/);
+    await expect(page.getByText("Já tem um login?")).toBeVisible();
+    await page.getByRole("link", { name: "Entre" }).click();
     await expect(page).toHaveURL(/\/login\?next=/);
+    await expect(page.getByTestId("logo-splash")).toHaveCount(0);
     await signIn(page, E2E_USER);
     await expect(page.getByRole("heading", { name: "Você recebeu um convite" })).toBeVisible();
     await page.getByRole("button", { name: "Aceitar convite" }).click();

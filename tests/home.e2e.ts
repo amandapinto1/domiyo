@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page).toHaveURL(/\/home$/);
 });
 
-test("Início greets the member and shows today's empty agenda", async ({ page }) => {
+test("Início greets the member and shows today's empty agenda", async ({ page, isMobile }) => {
   await expect(page.getByRole("heading", { name: `Olá, ${E2E_MEMBER.name}` })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Agenda de hoje" })).toBeVisible();
   await expect(page.getByText("Nenhum compromisso no dia selecionado")).toBeVisible();
@@ -24,6 +24,84 @@ test("Início greets the member and shows today's empty agenda", async ({ page }
   await expect(navigation.getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
   await expect(navigation.getByRole("link", { name: "Agenda" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Perfil" })).toBeVisible();
+
+  if (isMobile) {
+    const getIconVerticalCenters = () => navigation.locator("ul").evaluate((list) =>
+      [...list.querySelectorAll(":scope > li")].map((item) => {
+        const icon = item.querySelector("svg");
+        if (!icon) throw new Error("Navigation link is missing its icon.");
+        const iconBounds = icon.getBoundingClientRect();
+        return iconBounds.top + iconBounds.height / 2;
+      }),
+    );
+    const expectHitboxWidths = async () => {
+      const widths = await navigation.locator("ul").evaluate((list) =>
+        [...list.querySelectorAll(":scope > li")].map((item) => {
+          const link = item.querySelector("a");
+          if (!link) throw new Error("Navigation link is missing.");
+          return {
+            active: link.hasAttribute("aria-current"),
+            link: link.getBoundingClientRect().toJSON(),
+            slot: item.getBoundingClientRect().toJSON(),
+          };
+        }),
+      );
+      for (const item of widths) {
+        if (item.active) {
+          expect(item.link.width).toBeCloseTo(item.slot.width, 0);
+          expect(item.link.x).toBeCloseTo(item.slot.x, 0);
+          expect(item.link.width).toBeGreaterThan(50);
+        } else {
+          expect(item.link.width).toBeCloseTo(50, 0);
+          expect(item.link.x + item.link.width / 2).toBeCloseTo(item.slot.x + item.slot.width / 2, 0);
+        }
+      }
+    };
+    const expectPillMatchesSelectedSlot = async () => {
+      const geometry = await navigation.locator("ul").evaluate((list) => {
+        const active = list.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
+        const pill = list.querySelector<HTMLElement>(":scope > span");
+        if (!active || !pill) throw new Error("Active navigation indicator is missing.");
+        const listBounds = list.getBoundingClientRect();
+        const activeBounds = active.getBoundingClientRect();
+        return {
+          activeLeft: activeBounds.left - listBounds.left,
+          activeWidth: activeBounds.width,
+          pillLeft: Number.parseFloat(pill.style.left),
+          pillWidth: Number.parseFloat(pill.style.width),
+        };
+      });
+      expect(geometry.pillLeft).toBeCloseTo(geometry.activeLeft, 0);
+      expect(geometry.pillWidth).toBeCloseTo(geometry.activeWidth, 0);
+    };
+    const expectIconsVerticallyAligned = async () => {
+      const centers = await getIconVerticalCenters();
+      expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
+    };
+    const expectInactiveLabelsHidden = async () => {
+      const displays = await navigation.locator("ul > li > a > [data-nav-label]").evaluateAll((labels) =>
+        labels.map((label) => getComputedStyle(label).display),
+      );
+      expect(displays.filter((display) => display !== "none")).toHaveLength(1);
+    };
+
+    await expectIconsVerticallyAligned();
+    await expectHitboxWidths();
+    await expectInactiveLabelsHidden();
+    await expectPillMatchesSelectedSlot();
+    await navigation.getByRole("link", { name: "Perfil" }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expectIconsVerticallyAligned();
+    await expectHitboxWidths();
+    await expectInactiveLabelsHidden();
+    await expectPillMatchesSelectedSlot();
+    await navigation.getByRole("link", { name: "Agenda" }).click();
+    await expect(page).toHaveURL(/\/agenda$/);
+    await expectIconsVerticallyAligned();
+    await expectHitboxWidths();
+    await expectInactiveLabelsHidden();
+    await expectPillMatchesSelectedSlot();
+  }
 });
 
 test("the week strip selects another day", async ({ page }) => {

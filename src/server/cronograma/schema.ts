@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { APP_TIME_ZONE, zonedTimeToUtc } from "@/lib/dates";
+import { APP_TIME_ZONE, zonedTimeToUtc } from "../../lib/dates";
 
 const nullableText = (maximum: number) => z.string().trim().max(maximum).nullable();
 const timeSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
@@ -71,7 +71,7 @@ function dateFor(day: number, month: number, year: number): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function sourceKey(item: CronogramaModel["weeks"][number]["days"][number]["items"][number]): string {
+export function cronogramaSourceKey(item: CronogramaModel["weeks"][number]["days"][number]["items"][number]): string {
   const identity = [item.subject, item.type, item.location, item.teacher, item.content]
     .map((value) => value?.normalize("NFKC").trim().toLocaleLowerCase("pt-BR") ?? "")
     .join("\u001f");
@@ -102,7 +102,7 @@ export function toCronogramaEvents(input: CronogramaModel, firstYear = new Date(
           location: item.location,
           teacher: item.teacher,
           content: item.content,
-          sourceKey: sourceKey(item),
+          sourceKey: cronogramaSourceKey(item),
         });
       }
     }

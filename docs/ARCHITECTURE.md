@@ -91,7 +91,7 @@ Keep database models out of client components: data-access functions return plai
 3. Every household-owned read and write is scoped and authorized server-side. Resource identifiers supplied by the client never substitute for membership checks.
 4. Changes to shared tasks, bills, meals, recipes, ingredients, grocery items, and notifications are persisted transactionally where related state must remain consistent.
 5. Task assignment by another member creates an in-app notification. V1 does not send push notifications.
-6. Recurring tasks and bills (after the MVP) create due occurrences idempotently so retries cannot create duplicate occurrences. Next.js has no scheduler: use a Railway cron job that runs a server-side script against the database. The MVP has no scheduled jobs.
+6. Recurring tasks and bills (after the MVP) create due occurrences idempotently so retries cannot create duplicate occurrences. Next.js has no scheduler, so Railway cron runs server-side scripts against the database. In the MVP, an hourly job clears hashes for expired invitation links; the link itself becomes unusable at its exact expiration time.
 
 ## Database and Storage
 
@@ -103,7 +103,7 @@ Keep database models out of client components: data-access functions return plai
 - All schema changes must be versioned migrations, reviewed, and covered by tests. Preserve a tested backup and restore path before production launch.
 - Encrypt database storage at rest and all network connections in transit. Fields classified as sensitive also use field-level encryption (see below). Encryption keys are managed separately from database contents and source code; define key rotation and recovery procedures before production launch.
 - The only stored files are imported cronograma PDFs (one per agenda, replaced on re-import) and profile photos. For the MVP they live encrypted in PostgreSQL (`bytea`) with size limits: PDF up to 10 MB, photo resized to at most 512×512 px and 1 MB before encryption. Revisit object storage only if measured size or cost requires it; any storage service needs approval.
-- Define retention, account/household deletion, data export, and invitation expiry policies before production launch. Deleting a member's agenda (when they leave or are removed) also deletes its items and stored PDF.
+- Define retention, account/household deletion, data export, and invitation expiry policies before production launch. An hourly job clears expired invitation token hashes while retaining invitation status/history. Deleting a member's agenda (when they leave or are removed) also deletes its items and stored PDF.
 
 ### Sensitive data and field-level encryption
 
@@ -197,7 +197,7 @@ Runtime configuration comes from server-only environment variables (never prefix
   - `requireHouseholdMember(householdId)` reads the session itself (never a user id from the caller) and returns `{ userId, householdId, role }`. If the user is not a member, it responds exactly as if the resource did not exist: pages and data access call `notFound()`, Route Handlers return 404, Server Actions return the generic not-found result. This never reveals whether another household's resource exists.
   - `requireCurrentMembership()` resolves the household the user is working in. MVP: the user's only membership; without one, it redirects to the first-access screen (create a household). Later versions: the household the user selected.
   - Wrap these helpers in React `cache()` so repeated calls in one request hit the database once.
-- **Invitation and reset tokens:** random, single-use, expiring, revocable, and stored only as hashes.
+- **Invitation and reset tokens:** random, single-use, expiring, revocable, and stored only as hashes. Shareable invitation codes use 6 cryptographically random bytes (8 URL-safe characters); the hourly Railway cron clears their hashes after expiration without deleting invitation history.
 - **One household per user (MVP):** accepting an invitation checks, inside the same transaction that creates the membership, that the user has no household; the unique constraint on `household_members.user_id` is the final guard. This covers both email and link invitations. A blocked acceptance changes nothing the inviter can see; the invited person may decline, which marks the invitation `declined` (shown to the inviter as "Recusado", with no reason). The inviter never learns whether the invited person has an account or another household.
 - **Rate limiting:** enable Better Auth's rate limiter with database storage (in-memory storage is lost on restart) for sign-in, sign-up, and password reset, and apply the same limiter to invitation creation and acceptance. Return non-enumerating responses where account discovery would create risk.
 - Email invitation delivery requires selecting and reviewing a provider. Shareable invitation links must remain usable without weakening expiry, revocation, and membership controls.

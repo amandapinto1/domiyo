@@ -28,5 +28,12 @@ export default defineRailway(() => {
     },
   });
 
-  return project("domiyo", { resources: [web, db] });
+  const invitationCleanup = service("invitation-cleanup", {
+    build: "pnpm build",
+    start: "pnpm invitations:cleanup",
+    cronSchedule: "0 * * * *",
+    env: { DATABASE_URL: db.env.DATABASE_URL },
+  });
+
+  return project("domiyo", { resources: [web, invitationCleanup, db] });
 });

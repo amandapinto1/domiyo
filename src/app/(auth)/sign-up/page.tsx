@@ -10,17 +10,25 @@ export const metadata: Metadata = { title: "Criar conta · Domiyo" };
 
 export default async function SignUpPage({ searchParams }: { searchParams: SearchParams }) {
   const next = safeNextPath((await searchParams).next);
+  const isInvitationFlow = next?.startsWith("/invite/") ?? false;
   if (await getSession()) redirect(next ?? ROUTES.home);
 
   return (
     <>
       <AuthIntro title="Crie sua conta">Organize a casa junto com quem mora com você.</AuthIntro>
+      {isInvitationFlow ? (
+        <p className="mt-5 text-center text-body-small text-text dark:text-text-secondary">
+          Já tem um login? <Link href={withNext(ROUTES.signIn, next)}>Entre</Link>
+        </p>
+      ) : null}
       <AuthCard title="Criar conta">
         <SignUpForm next={next} />
       </AuthCard>
-      <AuthFooter>
-        Já tem uma conta? <Link href={withNext(ROUTES.signIn, next)}>Entrar</Link>
-      </AuthFooter>
+      {!isInvitationFlow ? (
+        <AuthFooter>
+          Já tem uma conta? <Link href={withNext(ROUTES.signIn, next)}>Entrar</Link>
+        </AuthFooter>
+      ) : null}
     </>
   );
 }

@@ -12,7 +12,7 @@ export async function acceptInvitationAction(token: unknown): Promise<void> {
   const invitePath = ROUTES.invite(parsed.data);
 
   const session = await getSession();
-  if (!session) redirect(withNext(ROUTES.signIn, invitePath));
+  if (!session) redirect(withNext(ROUTES.signUp, invitePath));
 
   let result: Awaited<ReturnType<typeof acceptInvitation>>;
   try {

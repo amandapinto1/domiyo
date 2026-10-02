@@ -57,11 +57,30 @@ test.describe.serial("agenda items", () => {
     await form.getByRole("button", { name: "Adicionar item" }).click();
     await expect(form).toBeHidden();
 
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: /Plantão E2E/ }).first().click();
     const detail = page.getByRole("dialog", { name: "Plantão E2E" });
+    await expect(detail).toHaveCSS("animation-name", "dialog-drawer-rise");
+    await expect(detail).toHaveCSS("animation-duration", "0.82s");
     await expect(detail).toContainText("Criado manualmente");
     await expect(detail).toContainText("09:00 – 11:30");
     await expect(detail).toContainText("Hospital");
+    await expect(detail.getByRole("img")).toBeVisible();
+    const closeControls = detail.locator('button[aria-label="Fechar"]');
+    await expect(closeControls).toHaveCount(2);
+    await expect(closeControls.first()).toBeVisible();
+    await expect(closeControls.nth(1)).toBeHidden();
+
+    const handleBounds = await closeControls.first().boundingBox();
+    if (!handleBounds) throw new Error("The dialog handle should be visible on mobile.");
+    const handleX = handleBounds.x + handleBounds.width / 2;
+    const handleY = handleBounds.y + handleBounds.height / 2;
+    await page.mouse.move(handleX, handleY);
+    await page.mouse.down();
+    await page.mouse.move(handleX, handleY + 140, { steps: 8 });
+    await page.mouse.up();
+    await expect(detail).toBeHidden();
+    await page.getByRole("button", { name: /Plantão E2E/ }).first().click();
 
     await page.goto("/home");
     await expect(page.getByText("Plantão E2E")).toBeVisible();

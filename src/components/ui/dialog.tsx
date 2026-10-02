@@ -1,7 +1,7 @@
 "use client";
 
 import { TriangleAlert, X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { FOCUS_RING } from "./styles";
 
 type DialogProps = {
@@ -17,6 +17,8 @@ type DialogProps = {
   variant: "sheet" | "drawer" | "alert" | "modal";
   /** "#RRGGBB" dot before the title, e.g. an agenda item's subject color. */
   titleColor?: string;
+  /** Optional mobile-only action beside the title, used instead of the drawer close button. */
+  mobileHeaderAction?: ReactNode;
   children: ReactNode;
 };
 
@@ -34,24 +36,113 @@ const CONTENT = {
   alert: "p-6 md:p-8",
   modal: "p-6 md:p-8",
 } as const;
+const DRAG_CLOSE_THRESHOLD = 96;
 
 /**
  * Native modal dialog: focus moves inside, Escape and the backdrop close it, and focus returns to the trigger.
  * The element marked `data-autofocus` gets focus first.
  */
-export function Dialog({ isOpen, onClose, title, titleId, descriptionId, variant, titleColor, children }: DialogProps) {
+export function Dialog({
+  isOpen,
+  onClose,
+  title,
+  titleId,
+  descriptionId,
+  variant,
+  titleColor,
+  mobileHeaderAction,
+  children,
+}: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const dragRef = useRef<{ pointerId: number; startY: number; offsetY: number } | null>(null);
+  const suppressGripClickRef = useRef(false);
+  const [retainedChildren, setRetainedChildren] = useState<ReactNode>(children);
+
+  if (isOpen && retainedChildren !== children) setRetainedChildren(children);
+
+  const requestClose = () => {
+    const dialog = dialogRef.current;
+    if (variant === "drawer" && dialog?.open && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setRetainedChildren(children);
+      dialog.dataset.closing = "true";
+      dialog.style.setProperty("--dialog-drag-y", "calc(100% + 1px)");
+    }
+    onClose();
+  };
+
+  const handleGripPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const dialog = dialogRef.current;
+    if (variant !== "drawer" || !dialog || event.button !== 0) return;
+
+    dragRef.current = { pointerId: event.pointerId, startY: event.clientY, offsetY: 0 };
+    suppressGripClickRef.current = false;
+    dialog.dataset.dragging = "true";
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleGripPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    const dialog = dialogRef.current;
+    if (!drag || !dialog || drag.pointerId !== event.pointerId) return;
+
+    drag.offsetY = Math.min(dialog.offsetHeight, Math.max(0, event.clientY - drag.startY));
+    if (drag.offsetY >= 6) suppressGripClickRef.current = true;
+    dialog.style.setProperty("--dialog-drag-y", `${drag.offsetY}px`);
+  };
+
+  const handleGripPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current;
+    const dialog = dialogRef.current;
+    if (!drag || !dialog || drag.pointerId !== event.pointerId) return;
+
+    dragRef.current = null;
+    dialog.removeAttribute("data-dragging");
+    if (drag.offsetY < 6) {
+      dialog.style.removeProperty("--dialog-drag-y");
+      return;
+    }
+
+    suppressGripClickRef.current = true;
+    if (drag.offsetY < DRAG_CLOSE_THRESHOLD) {
+      dialog.style.removeProperty("--dialog-drag-y");
+      return;
+    }
+
+    requestClose();
+  };
+
+  const handleGripPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    suppressGripClickRef.current = false;
+    const dialog = dialogRef.current;
+    if (dialog) {
+      dialog.removeAttribute("data-dragging");
+      dialog.style.removeProperty("--dialog-drag-y");
+    }
+  };
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (isOpen && !dialog.open) {
+    if (isOpen && dialog.open && dialog.dataset.closing) {
+      dialog.removeAttribute("data-closing");
+      dialog.style.removeProperty("--dialog-drag-y");
+    } else if (isOpen && !dialog.open) {
+      dialog.removeAttribute("data-closing");
+      dialog.removeAttribute("data-dragging");
+      dialog.style.removeProperty("--dialog-drag-y");
       dialog.showModal();
       dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     } else if (!isOpen && dialog.open) {
-      dialog.close();
+      if (variant === "drawer" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        dialog.dataset.closing = "true";
+        dialog.style.setProperty("--dialog-drag-y", "calc(100% + 1px)");
+      } else {
+        dialog.close();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, variant]);
 
   return (
     <dialog
@@ -64,25 +155,45 @@ export function Dialog({ isOpen, onClose, title, titleId, descriptionId, variant
         // Escape goes through onClose, so the owner can keep the dialog open (e.g. while an action is pending).
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        requestClose();
       }}
       onClose={(event) => {
         event.stopPropagation();
+        event.currentTarget.removeAttribute("data-closing");
+        event.currentTarget.removeAttribute("data-dragging");
+        event.currentTarget.style.removeProperty("--dialog-drag-y");
+        setRetainedChildren(null);
         onClose();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
-      className={`max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white p-0 text-left text-text backdrop:bg-lavender-900/60 dark:bg-lavender-900 dark:[--app-input:var(--color-lavender-950)] ${PANEL[variant]}`}
+      onTransitionEnd={(event) => {
+        if (event.target === event.currentTarget && event.propertyName === "translate" && event.currentTarget.dataset.closing) {
+          event.currentTarget.close();
+        }
+      }}
+      className={`max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white p-0 text-left text-text backdrop:bg-lavender-900/60 dark:bg-lavender-900 dark:[--app-input:var(--color-lavender-950)] ${PANEL[variant]} ${variant === "drawer" ? "dialog-drawer" : ""}`}
     >
       <div className={CONTENT[variant]}>
         {variant === "sheet" || variant === "drawer" ? (
           <>
             <button
               type="button"
-              onClick={onClose}
+              onClick={(event) => {
+                if (suppressGripClickRef.current) {
+                  suppressGripClickRef.current = false;
+                  event.preventDefault();
+                  return;
+                }
+                requestClose();
+              }}
+              onPointerDown={handleGripPointerDown}
+              onPointerMove={handleGripPointerMove}
+              onPointerUp={handleGripPointerUp}
+              onPointerCancel={handleGripPointerCancel}
               aria-label="Fechar"
-              className={`mx-auto mb-5 block h-6 w-16 cursor-pointer rounded-full md:hidden ${FOCUS_RING}`}
+              className={`mx-auto mb-5 block h-6 w-16 cursor-grab touch-none rounded-full active:cursor-grabbing md:hidden ${FOCUS_RING}`}
             >
               <span aria-hidden="true" className="mx-auto block h-1 w-10 rounded-full bg-lavender-300 dark:bg-lavender-600" />
             </button>
@@ -98,12 +209,15 @@ export function Dialog({ isOpen, onClose, title, titleId, descriptionId, variant
                 ) : null}
                 <span className="min-w-0 break-words">{title}</span>
               </h2>
+              {variant === "drawer" && mobileHeaderAction ? (
+                <span className="grid size-10 shrink-0 place-items-center md:hidden">{mobileHeaderAction}</span>
+              ) : null}
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Fechar"
                 className={`size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-lavender-100 text-lavender-900 dark:bg-lavender-800 dark:text-white ${
-                  variant === "drawer" ? "grid" : "hidden md:grid"
+                  variant === "drawer" ? (mobileHeaderAction ? "hidden md:grid" : "grid") : "hidden md:grid"
                 } ${FOCUS_RING}`}
               >
                 <X aria-hidden="true" className="size-5" strokeWidth={2} />
@@ -124,7 +238,7 @@ export function Dialog({ isOpen, onClose, title, titleId, descriptionId, variant
             {title}
           </h2>
         )}
-        {isOpen ? children : null}
+        {isOpen ? children : retainedChildren}
       </div>
     </dialog>
   );

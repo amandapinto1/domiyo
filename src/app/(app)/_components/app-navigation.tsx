@@ -3,7 +3,7 @@
 import { Calendar, ChevronLeft, ChevronRight, House, User, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Logo, LogoSymbol } from "@/components/ui/logo";
 import { ROUTES } from "@/lib/routes";
 
@@ -130,27 +130,69 @@ function Sidebar({ pathname }: { pathname: string }) {
 }
 
 function BottomBar({ pathname }: { pathname: string }) {
+  const activeIndex = Math.max(DESTINATIONS.findIndex(({ href }) => isActive(pathname, href)), 0);
+  const navigationRef = useRef<HTMLUListElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const navigation = navigationRef.current;
+    const indicator = indicatorRef.current;
+    if (!navigation || !indicator) return;
+    const nav = navigation;
+    const pill = indicator;
+
+    let readyFrame = 0;
+
+    function updateIndicator() {
+      const activeLink = nav.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
+      if (!activeLink) return;
+
+      const navigationBounds = nav.getBoundingClientRect();
+      const activeBounds = activeLink.getBoundingClientRect();
+      pill.style.left = `${activeBounds.left - navigationBounds.left}px`;
+      pill.style.width = `${activeBounds.width}px`;
+
+      if (!pill.dataset.positioned && !readyFrame) {
+        readyFrame = requestAnimationFrame(() => {
+          pill.dataset.positioned = "true";
+        });
+      }
+    }
+
+    updateIndicator();
+    const resizeObserver = new ResizeObserver(updateIndicator);
+    resizeObserver.observe(nav);
+    return () => {
+      cancelAnimationFrame(readyFrame);
+      resizeObserver.disconnect();
+    };
+  }, [activeIndex]);
+
   return (
     <nav
       aria-label="Navegação principal"
       className="fixed inset-x-6 bottom-6 z-10 rounded-full bg-lavender-900 p-2 md:hidden dark:bg-lavender-100"
     >
-      <ul className="flex items-center justify-between">
+      <ul ref={navigationRef} className="relative flex h-12 w-full items-center">
+        <span
+          ref={indicatorRef}
+          aria-hidden="true"
+          className="nav-indicator pointer-events-none absolute top-0 left-0 h-12 w-full rounded-full bg-lime-500 dark:bg-lavender-900"
+        />
         {DESTINATIONS.map(({ href, label, icon: Icon }) => {
           const isCurrent = isActive(pathname, href);
           return (
-            <li key={href}>
+            <li key={href} className="min-w-0 flex-1">
               <Link
                 href={href}
                 aria-current={isCurrent ? "page" : undefined}
-                className={`flex h-12 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-500 dark:focus-visible:outline-lavender-900 ${
-                  isCurrent
-                    ? "gap-2.5 bg-lime-500 px-5 text-lavender-900 dark:bg-lavender-900 dark:text-lime-500"
-                    : "w-16 text-lavender-300 dark:text-lavender-700"
-                }`}
+                aria-label={label}
+                className={`relative z-10 mx-auto flex h-12 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-500 dark:focus-visible:outline-lavender-900 ${isCurrent ? "w-full gap-2.5 text-lavender-900 dark:text-lime-500" : "w-[50px] text-lavender-300 dark:text-lavender-700"}`}
               >
                 <Icon aria-hidden="true" className="size-6 shrink-0" strokeWidth={1.75} />
-                <span className={isCurrent ? "text-body-small font-medium" : "sr-only"}>{label}</span>
+                <span data-nav-label className={`whitespace-nowrap text-body-small font-medium ${isCurrent ? "block" : "hidden"}`}>
+                  {label}
+                </span>
               </Link>
             </li>
           );

@@ -103,6 +103,7 @@ test.describe.serial("household management", () => {
     await dialog.getByRole("button", { name: "Gerar link de convite" }).click();
     const link = await dialog.getByLabel("Ou compartilhe o link de convite").inputValue();
     expect(link).toMatch(/\/invite\/[\w-]+$/);
+    expect(new URL(link).pathname.split("/").at(-1)).toMatch(/^[A-Za-z0-9]{8}$/);
     await dialog.getByRole("button", { name: "Fechar" }).last().click();
 
     const partnerContext = await browser.newContext();

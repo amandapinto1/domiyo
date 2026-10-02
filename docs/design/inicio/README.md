@@ -107,4 +107,12 @@ The screen uses sample items from the logged-in user's agenda ("Amanda"): Dermat
 
 ## Not yet designed
 
-Loading, empty ("Nenhum compromisso hoje"), and error states; the day with no items; the navigation animation (reference: the owner's Dribbble clip, where the active pill slides between items; must respect `prefers-reduced-motion`).
+Loading, empty ("Nenhum compromisso hoje"), and error states; the day with no items.
+
+Mobile navigation rules:
+
+- Destinations use equal flexible slots. Icons stay centered in their own slots, independent of label width; inactive labels use `display: none`.
+- An inactive link has a 50px hit area. The selected link and animated pill fill their slot, about 110px with the current three destinations at a 390px viewport; on narrower screens, they adapt to the available slot. The selected icon and label are centered together in icon-then-text order.
+- Adding a destination redistributes the available width equally, so existing icon centers will move with their slots. The layout prevents label-driven shifts and overlap; it does not promise fixed screen coordinates when the destination count changes.
+- Before adding destinations, confirm that the supported mobile widths still leave the active label readable and each inactive hit area at least 50px. If they do not, define an approved overflow/navigation pattern instead of allowing targets or labels to overlap.
+- Reduced motion disables the pill animation.

@@ -1,0 +1,2 @@
+ALTER TABLE "household_invitations" ALTER COLUMN "token_hash" DROP NOT NULL;--> statement-breakpoint
+CREATE INDEX "household_invitations_expires_at_idx" ON "household_invitations" USING btree ("expires_at");

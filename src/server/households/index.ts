@@ -1,7 +1,8 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { and, asc, count, desc, eq, gt, or } from "drizzle-orm";
 import { db } from "@/db";
+import { generateInvitationToken } from "./invitation-token";
 import {
   agendas,
   householdInvitations,
@@ -44,7 +45,6 @@ export const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // Invitation creation is rate-limited per inviter (docs/CONVENTIONS.md › Security checklist).
 const MAX_INVITATIONS_PER_HOUR = 10;
 const ONE_HOUR_MS = 60 * 60 * 1000;
-const INVITATION_TOKEN_BYTES = 32;
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -266,7 +266,7 @@ export async function createInvitation(
         );
     }
 
-    const token = randomBytes(INVITATION_TOKEN_BYTES).toString("base64url");
+    const token = generateInvitationToken();
     const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
     const [invitation] = await tx
       .insert(householdInvitations)

@@ -13,11 +13,12 @@ export const metadata: Metadata = { title: "Entrar · Domiyo" };
 export default async function SignInPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
+  const isInvitationFlow = next?.startsWith("/invite/") ?? false;
   if (await getSession()) redirect(next ?? ROUTES.home);
 
   return (
     <>
-      <IntroSplash />
+      {isInvitationFlow ? null : <IntroSplash />}
       <AuthIntro title="Que bom ter você de volta!">Entre para ver a agenda do household.</AuthIntro>
       <AuthCard title="Entrar">
         <SignInForm next={next} notice={getSignInNotice(params)} />
