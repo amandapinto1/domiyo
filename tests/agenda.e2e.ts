@@ -135,6 +135,10 @@ test("swiping from an interactive field does not dismiss a mobile drawer", async
   await page.getByRole("button", { name: "Novo item" }).first().click();
   const form = page.getByRole("dialog", { name: "Novo item" });
   await expect(form).toBeVisible();
+  const closeControls = form.locator('button[aria-label="Fechar"]');
+  await expect(closeControls).toHaveCount(2);
+  await expect(closeControls.first()).toBeVisible();
+  await expect(closeControls.nth(1)).toBeHidden();
   await swipeDown(page, form.getByLabel("Título"));
   await expect(form).toBeVisible();
   await expect(page.locator("dialog[open]")).toHaveCount(1);
@@ -202,6 +206,15 @@ test.describe.serial("agenda items", () => {
     await expect(detail.getByRole("img", { name: `${E2E_PLANNER.name} ${E2E_PLANNER.surname}` })).toBeVisible();
     await expect(detail.getByRole("img", { name: `${E2E_PLANNER_PARTNER.name} ${E2E_PLANNER_PARTNER.surname}` })).toBeVisible();
     await expect(detail).toContainText(`Agenda de ${E2E_PLANNER.name}, Agenda de ${E2E_PLANNER_PARTNER.name}`);
+    const detailBounds = await detail.boundingBox();
+    const titleBounds = await detail.getByRole("heading", { name: "Plantão E2E" }).boundingBox();
+    const firstOwnerBounds = await detail.getByRole("img", { name: `${E2E_PLANNER.name} ${E2E_PLANNER.surname}` }).boundingBox();
+    const secondOwnerBounds = await detail.getByRole("img", { name: `${E2E_PLANNER_PARTNER.name} ${E2E_PLANNER_PARTNER.surname}` }).boundingBox();
+    if (!detailBounds || !titleBounds || !firstOwnerBounds || !secondOwnerBounds) throw new Error("The detail header should be visible.");
+    expect(firstOwnerBounds.x).toBeGreaterThanOrEqual(detailBounds.x);
+    expect(firstOwnerBounds.x + firstOwnerBounds.width).toBeLessThanOrEqual(detailBounds.x + detailBounds.width);
+    expect(secondOwnerBounds.x + secondOwnerBounds.width).toBeLessThanOrEqual(detailBounds.x + detailBounds.width);
+    expect(titleBounds.x + titleBounds.width).toBeLessThanOrEqual(firstOwnerBounds.x);
     const closeControls = detail.locator('button[aria-label="Fechar"]');
     await expect(closeControls).toHaveCount(2);
     await expect(closeControls.first()).toBeVisible();
@@ -218,6 +231,11 @@ test.describe.serial("agenda items", () => {
     await page.mouse.down();
     await page.mouse.move(handleX, handleY + 140, { steps: 8 });
     await page.mouse.up();
+    const closingDrawer = page.locator('dialog[open][data-closing="true"]');
+    await expect(closingDrawer).toHaveCount(1);
+    await expect(closingDrawer.getByRole("heading", { name: "Plantão E2E" })).toBeVisible();
+    await expect(closingDrawer.getByRole("img", { name: `${E2E_PLANNER.name} ${E2E_PLANNER.surname}` })).toBeVisible();
+    await expect(closingDrawer.getByRole("img", { name: `${E2E_PLANNER_PARTNER.name} ${E2E_PLANNER_PARTNER.surname}` })).toBeVisible();
     await expect(detail).toBeHidden();
     await page.getByRole("button", { name: /Plantão E2E/ }).first().click();
 

@@ -8,6 +8,7 @@
 @theme static {
   --color-*: initial;
   --color-white: #ffffff;
+  --color-lavender-980: #0f0a13;
   --color-lavender-950: #1f1326;
   --color-lavender-900: #382344;
   --color-lavender-800: #493964;

@@ -96,8 +96,15 @@ export function Dialog({
   const suppressGripClickRef = useRef(false);
   const requestCloseRef = useRef<() => void>(() => undefined);
   const [retainedChildren, setRetainedChildren] = useState<ReactNode>(children);
+  const retainedHeaderRef = useRef({ title, titleColor, mobileHeaderAction });
 
   if (isOpen && retainedChildren !== children) setRetainedChildren(children);
+  if (isOpen) retainedHeaderRef.current = { title, titleColor, mobileHeaderAction };
+
+  const isClosing = !isOpen && Boolean(dialogRef.current?.open);
+  const visibleTitle = isClosing ? retainedHeaderRef.current.title : title;
+  const visibleTitleColor = isClosing ? retainedHeaderRef.current.titleColor : titleColor;
+  const visibleMobileHeaderAction = isClosing ? retainedHeaderRef.current.mobileHeaderAction : mobileHeaderAction;
 
   const requestClose = () => {
     const dialog = dialogRef.current;
@@ -292,7 +299,7 @@ export function Dialog({
           event.currentTarget.close();
         }
       }}
-      className={`max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white p-0 text-left text-text backdrop:bg-lavender-900/60 dark:bg-lavender-900 dark:[--app-input:var(--color-lavender-950)] ${PANEL[variant]} ${isSwipeDismissVariant(variant) ? "dialog-mobile-dismissable" : ""} ${variant === "drawer" ? "dialog-drawer" : ""}`}
+      className={`max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white p-0 text-left text-text backdrop:bg-lavender-980/78 dark:bg-lavender-900 dark:[--app-input:var(--color-lavender-950)] ${PANEL[variant]} ${isSwipeDismissVariant(variant) ? "dialog-mobile-dismissable" : ""} ${variant === "drawer" ? "dialog-drawer" : ""}`}
     >
       <div className={CONTENT[variant]}>
         {variant === "sheet" || variant === "drawer" ? (
@@ -313,28 +320,32 @@ export function Dialog({
             >
               <span aria-hidden="true" className="mx-auto block h-1 w-10 rounded-full bg-lavender-300 dark:bg-lavender-600" />
             </button>
-            <div className="flex items-center justify-between gap-4">
+            <div
+              className={`flex items-center justify-between gap-x-4 gap-y-2 ${
+                variant === "drawer" && visibleMobileHeaderAction ? "flex-wrap md:flex-nowrap" : ""
+              }`}
+            >
               <h2
                 id={titleId}
                 className={`flex min-w-0 items-center gap-3 font-medium text-heading ${
                   variant === "drawer" ? "text-numeric-emphasis" : "text-section-heading"
-                }`}
+                } ${variant === "drawer" && visibleMobileHeaderAction ? "flex-[1_1_max-content] md:flex-auto" : ""}`}
               >
-                {titleColor ? (
-                  <span aria-hidden="true" className="size-3 shrink-0 rounded-full" style={{ backgroundColor: titleColor }} />
+                {visibleTitleColor ? (
+                  <span aria-hidden="true" className="size-3 shrink-0 rounded-full" style={{ backgroundColor: visibleTitleColor }} />
                 ) : null}
-                <span className="min-w-0 break-words">{title}</span>
+                <span className="min-w-0 break-words">{visibleTitle}</span>
               </h2>
-              {variant === "drawer" && mobileHeaderAction ? (
-                <span className="grid size-10 shrink-0 place-items-center md:hidden">{mobileHeaderAction}</span>
+              {variant === "drawer" && visibleMobileHeaderAction ? (
+                <span className="ml-auto flex min-h-10 max-w-full shrink-0 items-center justify-center md:hidden">
+                  {visibleMobileHeaderAction}
+                </span>
               ) : null}
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Fechar"
-                className={`size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-lavender-100 text-lavender-900 dark:bg-lavender-800 dark:text-white ${
-                  variant === "drawer" ? (mobileHeaderAction ? "hidden md:grid" : "grid") : "hidden md:grid"
-                } ${FOCUS_RING}`}
+                className={`hidden size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-lavender-100 text-lavender-900 md:grid dark:bg-lavender-800 dark:text-white ${FOCUS_RING}`}
               >
                 <X aria-hidden="true" className="size-5" strokeWidth={2} />
               </button>

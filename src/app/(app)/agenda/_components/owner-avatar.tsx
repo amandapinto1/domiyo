@@ -23,12 +23,15 @@ export function OwnerAvatar({ owner, size = "small" }: { owner: ItemOwner; size?
 }
 
 export function OwnersAvatar({ owners, size = "small" }: { owners: ItemOwner[]; size?: "small" | "large" }) {
-  const visibleOwners = owners.slice(0, 3);
-  const remainingOwners = owners.slice(3);
+  const visibleOwners = size === "large" ? owners : owners.slice(0, 3);
+  const remainingOwners = size === "large" ? [] : owners.slice(3);
   const sizeClass = size === "large" ? "size-10 text-body-small" : "size-6 text-[0.625rem]";
 
   return (
-    <span className="flex shrink-0 items-center -space-x-1" aria-label={owners.map((owner) => owner.name).join(", ")}>
+    <span
+      className={`flex shrink-0 items-center -space-x-1 ${size === "large" ? "max-w-full flex-wrap justify-end" : ""}`}
+      aria-label={owners.map((owner) => owner.name).join(", ")}
+    >
       {visibleOwners.map((owner) => <OwnerAvatar key={owner.id} owner={owner} size={size} />)}
       {remainingOwners.length > 0 ? (
         <span
