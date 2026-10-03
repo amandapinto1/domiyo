@@ -162,9 +162,9 @@ Reading with Claude:
 
 ### Email delivery
 
-Brevo is selected for transactional email on its free plan. The integration remains provider-agnostic so the owner can change SMTP providers without changing email templates or business logic:
+Brevo is selected for transactional email on its free plan. The integration remains provider-agnostic so the owner can change delivery providers without changing email templates or business logic:
 
-- The server depends on an `EmailSender` interface (`send({ to, subject, html, text })`), with two adapters: `console` (development and tests: logs a redacted summary, never the full body with links in production) and `smtp` (Nodemailer, compatible with Brevo, Resend, Amazon SES, and Mailgun). For Brevo, use `smtp-relay.brevo.com` on port `587` with STARTTLS and an SMTP key, not an API key. A provider-specific HTTP adapter can be added later behind the same interface.
+- The server sends through `sendEmail({ to, subject, html, text })`, with three transports: `console` (development and tests: logs a redacted summary, never the full body with links in production), `smtp` (Nodemailer, for providers and hosting plans that permit outbound SMTP), and `brevo-api` (Brevo's transactional email REST API over HTTPS). Railway Free/Hobby blocks outbound SMTP, so production uses `brevo-api` and a Brevo API key; this avoids SMTP egress restrictions without changing email templates or business logic.
 - Emails in the MVP (pt-BR, each with HTML and plain-text versions): email confirmation at sign-up, household invitation, password reset, and "sua senha foi alterada" (security notice after a reset). Layout and copy: `docs/design/email/README.md` and the Figma page "E-mails"; rules in `docs/DESIGN_SYSTEM.md` › "Email templates".
 - Links in emails use `APP_PUBLIC_URL`; tokens expire and are single-use (see "Authentication, Authorization, and Invitations"). No tracking pixels or click tracking.
 - Before production: review Brevo's data-processing terms and processing region (LGPD), authenticate the sending subdomain with the DNS records shown in Brevo, and get approval before moving to any paid plan.
@@ -183,7 +183,8 @@ Runtime configuration comes from server-only environment variables (never prefix
 | `FIELD_ENCRYPTION_KEY` | Current field-encryption key (32 random bytes, base64) |
 | `FIELD_ENCRYPTION_KEY_VERSION` | Integer version of the current key |
 | `FIELD_ENCRYPTION_KEY_PREVIOUS` | Previous key, only during rotation |
-| `EMAIL_TRANSPORT` | `console` for local development or `smtp` to send through Brevo |
+| `EMAIL_TRANSPORT` | `console` for local development, `brevo-api` for Brevo over HTTPS, or `smtp` where outbound SMTP is allowed |
+| `BREVO_API_KEY` | Brevo API key for the `brevo-api` transport; keep it in the hosting secret manager |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP server settings and credentials; Brevo uses `smtp-relay.brevo.com`, port `587`, `false`, its SMTP login, and an SMTP key |
 | `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` | Verified sender, for example `nao-responda@notify.domiyo.app` and `Domiyo` |
 | `ANTHROPIC_API_KEY` | Claude API key for cronograma reading |

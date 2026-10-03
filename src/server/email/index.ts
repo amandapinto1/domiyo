@@ -8,24 +8,32 @@ export function emailFailureDetails(error: unknown): {
   errorCode?: string;
   smtpCommand?: string;
   smtpResponseCode?: number;
+  httpStatusCode?: number;
   configuredVariables: string[];
   missingConfiguration?: string[];
 } {
-  const variableNames = [
-    "EMAIL_TRANSPORT",
-    "SMTP_HOST",
-    "SMTP_PORT",
-    "SMTP_SECURE",
-    "SMTP_USER",
-    "SMTP_PASSWORD",
-    "EMAIL_FROM_ADDRESS",
-    "EMAIL_FROM_NAME",
-  ];
+  const variableNames = process.env.EMAIL_TRANSPORT === "brevo-api"
+    ? ["EMAIL_TRANSPORT", "BREVO_API_KEY", "EMAIL_FROM_ADDRESS", "EMAIL_FROM_NAME"]
+    : [
+        "EMAIL_TRANSPORT",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_SECURE",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_FROM_NAME",
+      ];
   const configuredVariables = variableNames.filter((name) => Boolean(process.env[name]));
 
   if (!(error instanceof Error)) return { errorName: "UnknownError", configuredVariables };
 
-  const metadata = error as Error & { code?: unknown; command?: unknown; responseCode?: unknown };
+  const metadata = error as Error & {
+    code?: unknown;
+    command?: unknown;
+    responseCode?: unknown;
+    httpStatusCode?: unknown;
+  };
   const errorCode = typeof metadata.code === "string" && /^[A-Z0-9_]{1,32}$/.test(metadata.code)
     ? metadata.code
     : undefined;
@@ -39,12 +47,23 @@ export function emailFailureDetails(error: unknown): {
     && metadata.responseCode <= 599
     ? metadata.responseCode
     : undefined;
-  const missingConfiguration = error.message.startsWith("Missing SMTP configuration: ")
-    ? error.message
-      .slice("Missing SMTP configuration: ".length)
-      .replace(/\.$/, "")
+  const httpStatusCode = typeof metadata.httpStatusCode === "number"
+    && Number.isInteger(metadata.httpStatusCode)
+    && metadata.httpStatusCode >= 400
+    && metadata.httpStatusCode <= 599
+    ? metadata.httpStatusCode
+    : undefined;
+  const missingConfigurationMatch = error.message.match(/^Missing (?:SMTP|Brevo API) configuration: (.+)\.$/);
+  const missingConfiguration = missingConfigurationMatch
+    ? missingConfigurationMatch[1]
       .split(", ")
-      .filter((name) => ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS"].includes(name))
+      .filter((name) => [
+        "SMTP_HOST",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "EMAIL_FROM_ADDRESS",
+        "BREVO_API_KEY",
+      ].includes(name))
     : [];
 
   return {
@@ -52,6 +71,7 @@ export function emailFailureDetails(error: unknown): {
     ...(errorCode ? { errorCode } : {}),
     ...(smtpCommand ? { smtpCommand } : {}),
     ...(smtpResponseCode ? { smtpResponseCode } : {}),
+    ...(httpStatusCode ? { httpStatusCode } : {}),
     configuredVariables,
     ...(missingConfiguration.length > 0 ? { missingConfiguration } : {}),
   };
@@ -68,6 +88,39 @@ export async function sendEmail(email: Email): Promise<void> {
       return;
     }
     console.info(`\n[email] Para: ${email.to}\nAssunto: ${email.subject}\n\n${email.text}\n`);
+    return;
+  }
+
+  if (transport === "brevo-api") {
+    const apiKey = process.env.BREVO_API_KEY;
+    const fromAddress = process.env.EMAIL_FROM_ADDRESS;
+    if (!apiKey || !fromAddress) {
+      const missing = [
+        ["BREVO_API_KEY", apiKey],
+        ["EMAIL_FROM_ADDRESS", fromAddress],
+      ].filter(([, value]) => !value).map(([name]) => name);
+      throw new Error(`Missing Brevo API configuration: ${missing.join(", ")}.`);
+    }
+
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": apiKey, "content-type": "application/json" },
+      body: JSON.stringify({
+        sender: { email: fromAddress, name: process.env.EMAIL_FROM_NAME ?? "Domiyo" },
+        to: [{ email: email.to }],
+        subject: email.subject,
+        htmlContent: email.html,
+        textContent: email.text,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!response.ok) {
+      throw Object.assign(new Error("Brevo API request failed."), {
+        name: "BrevoApiError",
+        httpStatusCode: response.status,
+      });
+    }
     return;
   }
 

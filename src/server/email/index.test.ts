@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createTransportMock, sendMailMock } = vi.hoisted(() => ({
+const { createTransportMock, fetchMock, sendMailMock } = vi.hoisted(() => ({
   createTransportMock: vi.fn(),
+  fetchMock: vi.fn(),
   sendMailMock: vi.fn(),
 }));
 
@@ -27,6 +28,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
@@ -116,5 +118,58 @@ describe("SMTP email transport", () => {
       text: "Você recebeu um convite.",
     })).rejects.toThrow("Missing SMTP configuration: SMTP_PASSWORD.");
     expect(createTransportMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("Brevo API email transport", () => {
+  const email = {
+    to: "invitee@example.test",
+    subject: "Confirme seu e-mail no Domiyo",
+    html: "<p>Confirme seu e-mail.</p>",
+    text: "Confirme seu e-mail.",
+  };
+
+  beforeEach(() => {
+    vi.stubEnv("EMAIL_TRANSPORT", "brevo-api");
+    vi.stubEnv("BREVO_API_KEY", "test-api-key");
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  it("sends transactional content over HTTPS with the API key header", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 201 }));
+
+    await sendEmail(email);
+
+    const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.brevo.com/v3/smtp/email");
+    expect(request.method).toBe("POST");
+    expect(request.headers).toEqual({
+      "api-key": "test-api-key",
+      "content-type": "application/json",
+    });
+    expect(JSON.parse(request.body as string)).toEqual({
+      sender: { email: "nao-responda@notify.domiyo.app", name: "Domiyo" },
+      to: [{ email: email.to }],
+      subject: email.subject,
+      htmlContent: email.html,
+      textContent: email.text,
+    });
+    expect(request.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("reports only the HTTP status when Brevo rejects a request", async () => {
+    fetchMock.mockResolvedValue(new Response("private response body", { status: 401 }));
+
+    await expect(sendEmail(email)).rejects.toMatchObject({
+      name: "BrevoApiError",
+      httpStatusCode: 401,
+    });
+  });
+
+  it("fails clearly when the Brevo API key is missing", async () => {
+    vi.stubEnv("BREVO_API_KEY", "");
+
+    await expect(sendEmail(email)).rejects.toThrow("Missing Brevo API configuration: BREVO_API_KEY.");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
