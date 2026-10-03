@@ -13,18 +13,10 @@ const invitePath = () => {
   return path;
 };
 
-test("public entry shows the logo, login link, and working theme toggle", async ({ page }) => {
+test("public entry redirects to login", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("img", { name: "Domiyo" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Usar tema escuro" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByRole("button", { name: "Usar tema claro" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-
-  await page.getByRole("link", { name: "Entrar" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByLabel("E-mail")).toBeVisible();
 });
 
 test("sign-up answers with the confirmation step", async ({ page }) => {
