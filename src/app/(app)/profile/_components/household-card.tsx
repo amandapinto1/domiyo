@@ -83,7 +83,7 @@ export function HouseholdCard({ household }: { household: Household }) {
               photoUrl={member.photoUrl}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-body font-medium break-words text-text">
+              <p className="text-body font-medium wrap-break-words text-text">
                 {member.firstName}
               </p>
               <p className="text-body-small text-text-secondary">

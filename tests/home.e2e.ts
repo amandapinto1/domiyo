@@ -104,6 +104,18 @@ test("Início greets the member and shows today's empty agenda", async ({ page, 
   }
 });
 
+test("pulling down at the top refreshes the current route on mobile", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "pull-to-refresh is a mobile gesture");
+
+  const refreshRequest = page.waitForRequest((request) => new URL(request.url()).searchParams.has("_rsc"));
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 120, y: 40 }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 120, y: 140 }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+
+  await refreshRequest;
+});
+
 test("the week strip selects another day", async ({ page }) => {
   const week = page.getByRole("navigation", { name: "Dias da semana" }).getByRole("link");
   await expect(week).toHaveCount(7);

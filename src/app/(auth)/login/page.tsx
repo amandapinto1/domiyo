@@ -23,9 +23,9 @@ export default async function SignInPage({ searchParams }: { searchParams: Searc
       <AuthCard title="Entrar">
         <SignInForm next={next} notice={getSignInNotice(params)} />
       </AuthCard>
-      <AuthFooter>
+      {/* <AuthFooter> //COMENTADO PARA BARRAR NOVOS LOGINS TEMPORARIAMENTE
         Ainda não tem conta? <Link href={withNext(ROUTES.signUp, next)}>Criar conta</Link>
-      </AuthFooter>
+      </AuthFooter> */}
     </>
   );
 }

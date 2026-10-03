@@ -16,7 +16,7 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Domiyo",
   description: "Organize a rotina do household em um só lugar.",
-  appleWebApp: { capable: true, title: "Domiyo", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Domiyo", statusBarStyle: "black-translucent" },
   icons: {
     icon: [
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 
 export async function generateViewport(): Promise<Viewport> {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
-  return { themeColor: getThemeColor(theme) };
+  return { themeColor: getThemeColor(theme), viewportFit: "cover" };
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

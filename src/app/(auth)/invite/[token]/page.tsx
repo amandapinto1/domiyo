@@ -31,9 +31,9 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
         <AuthCard title="Peça um novo convite" description="Fale com quem convidou você para receber um novo link de convite.">
           <ButtonLink href={ROUTES.signIn}>Ir para o login</ButtonLink>
         </AuthCard>
-        <AuthFooter>
+        {/* <AuthFooter> COMENTADO PARA BARRAR NOVOS LOGINS TEMPORARIAMENTE
           Ainda não tem conta? <Link href={ROUTES.signUp}>Criar conta</Link>
-        </AuthFooter>
+        </AuthFooter> */}
       </>
     );
   }

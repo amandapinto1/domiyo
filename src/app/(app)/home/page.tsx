@@ -15,7 +15,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   const { firstName, items } = await getHomeView(selectedDay);
 
   return (
-    <main className="flex min-h-dvh flex-col px-6 pt-14 pb-28 md:px-10 md:pt-12 md:pb-12 lg:px-16">
+    <main className="flex min-h-dvh flex-col px-6 pt-[calc(3.5rem_+_env(safe-area-inset-top))] pb-28 md:px-10 md:pt-12 md:pb-12 lg:px-16">
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-page-title font-medium text-heading">Olá, {firstName}</h1>

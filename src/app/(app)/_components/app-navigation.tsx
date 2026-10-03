@@ -171,7 +171,7 @@ function BottomBar({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-6 bottom-6 z-10 rounded-full bg-lavender-900 p-2 md:hidden dark:bg-lavender-100"
+      className="fixed inset-x-6 bottom-[calc(1.5rem_+_env(safe-area-inset-bottom))] z-10 rounded-full bg-lavender-900 p-2 md:hidden dark:bg-lavender-100"
     >
       <ul ref={navigationRef} className="relative flex h-12 w-full items-center">
         <span

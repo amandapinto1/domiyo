@@ -28,7 +28,7 @@ export function ItemCard({ item, layout, compact = false, onOpen }: ItemCardProp
       style={{ backgroundColor: item.color }}
     >
       <span className="flex w-full items-start justify-between gap-2">
-        <span className={`min-w-0 font-medium ${isList ? (compact ? "text-xs leading-4 break-words hyphens-auto" : "text-body-small") : "line-clamp-3 text-xs leading-4"}`} lang="pt-BR">
+        <span className={`min-w-0 font-medium ${isList ? (compact ? "text-xs leading-4 wrap-break-words hyphens-auto" : "text-body-small") : "line-clamp-3 text-xs leading-4"}`} lang="pt-BR">
           {item.title}
         </span>
         {isList ? <OwnerAvatar owner={item.owner} /> : null}

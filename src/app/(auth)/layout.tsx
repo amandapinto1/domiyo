@@ -10,7 +10,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
 
   return (
     <div className="min-h-dvh bg-linear-to-b from-lavender-500 to-lavender-300 dark:bg-none dark:bg-lavender-900">
-      <div className="mx-auto flex min-h-dvh w-full max-w-122 flex-col px-6 pt-16 pb-10 md:justify-center md:py-16">
+      <div className="mx-auto flex min-h-dvh w-full max-w-122 flex-col px-6 pt-[calc(4rem_+_env(safe-area-inset-top))] pb-[calc(2.5rem_+_env(safe-area-inset-bottom))] md:justify-center md:py-16">
         <header className="flex items-center justify-between">
           <Logo className="h-11.25 w-auto" />
           <ThemeToggle initialTheme={theme} className="md:absolute md:top-10 md:right-10" />

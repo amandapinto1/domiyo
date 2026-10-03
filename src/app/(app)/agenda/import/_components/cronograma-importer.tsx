@@ -128,7 +128,7 @@ export function CronogramaImporter(props: CronogramaImporterProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-6 pt-12 pb-28 md:px-10 md:pt-12 md:pb-12 lg:px-16">
+    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-6 pt-[calc(3rem_+_env(safe-area-inset-top))] pb-28 md:px-10 md:pt-12 md:pb-12 lg:px-16">
       <Link href={ROUTES.agenda} className={`mb-8 inline-flex min-h-10 w-fit items-center gap-2 text-body-small font-medium text-text-secondary ${FOCUS_RING}`}>
         <ArrowLeft aria-hidden="true" className="size-4" />
         Voltar para agenda

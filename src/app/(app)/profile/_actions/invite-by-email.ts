@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { ROUTES } from "@/lib/routes";
 import { requireHouseholdMember, requireSession } from "@/server/auth";
-import { sendEmail } from "@/server/email";
+import { emailFailureDetails, sendEmail } from "@/server/email";
 import { householdInvitationMessage } from "@/server/email/templates";
 import { createInvitation, revokeInvitation } from "@/server/households";
 import { householdInputSchema, inviteEmailSchema, type ProfileActionResult } from "../_components/schemas";
@@ -41,8 +41,8 @@ export async function inviteByEmailAction(input: unknown): Promise<ProfileAction
       await revokeInvitation(membership.householdId, created.invitationId);
       throw err;
     }
-  } catch {
-    console.error("inviteByEmailAction failed");
+  } catch (error: unknown) {
+    console.error("inviteByEmailAction failed", emailFailureDetails(error));
     return { ok: false, message: "Não foi possível enviar o convite. Tente de novo." };
   }
   refresh();
