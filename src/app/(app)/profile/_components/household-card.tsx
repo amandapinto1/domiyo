@@ -44,7 +44,7 @@ export function HouseholdCard({ household }: { household: Household }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 id="household-title" className="text-section-heading font-medium text-text">
-            Meu household
+            {name}
           </h2>
           <p className="mt-1 text-body-small text-text-secondary">{describeMemberCount(members.length)}</p>
         </div>

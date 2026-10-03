@@ -13,6 +13,7 @@ test("Perfil shows the account and the household", async ({ page }) => {
   await expect(account).toContainText(E2E_MEMBER.email);
 
   const household = page.getByRole("region", { name: "Meu household" });
+  await expect(household.getByText("Casa da Bia", { exact: true })).toBeVisible();
   await expect(household.getByText("1 membro", { exact: true })).toBeVisible();
   await expect(household.getByRole("list", { name: "Membros" })).toContainText("Você · admin");
   await expect(household.getByText("Link de convite", { exact: true }).first()).toBeVisible();
