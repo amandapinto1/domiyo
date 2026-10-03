@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Roboto } from "next/font/google";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { StyledComponentsRegistry } from "@/lib/styled-components-registry";
-import { parseTheme, THEME_COOKIE } from "@/lib/theme";
+import { getThemeColor, parseTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
+
+export async function generateViewport(): Promise<Viewport> {
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  return { themeColor: getThemeColor(theme) };
+}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);

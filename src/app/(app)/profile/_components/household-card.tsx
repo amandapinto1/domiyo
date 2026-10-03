@@ -20,8 +20,10 @@ type MemberView = Household["members"][number];
 
 const STATUS_TONES: Record<InvitationTone, string> = {
   info: "bg-info-100 text-info-600 dark:bg-lavender-800 dark:text-info-300",
-  warning: "bg-warning-100 text-warning-600 dark:bg-lavender-800 dark:text-warning-300",
-  neutral: "bg-lavender-100 text-lavender-800 dark:bg-lavender-800 dark:text-lavender-300",
+  warning:
+    "bg-warning-100 text-warning-600 dark:bg-lavender-800 dark:text-warning-300",
+  neutral:
+    "bg-lavender-100 text-lavender-800 dark:bg-lavender-800 dark:text-lavender-300",
 };
 
 function describeMemberCount(count: number): string {
@@ -30,7 +32,13 @@ function describeMemberCount(count: number): string {
 
 /** "Meu household": members, sent invitations, inviting, removing and leaving. */
 export function HouseholdCard({ household }: { household: Household }) {
-  const { id: householdId, name, members, invitations, isLastMember } = household;
+  const {
+    id: householdId,
+    name,
+    members,
+    invitations,
+    isLastMember,
+  } = household;
   const [isInviting, setIsInviting] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<MemberView | null>(null);
@@ -41,25 +49,46 @@ export function HouseholdCard({ household }: { household: Household }) {
 
   return (
     <section aria-labelledby="household-title" className={CARD}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 id="household-title" className="text-section-heading font-medium text-text">
+      <div className="flex items-start justify-between gap-4 w-full">
+        <div className=" w-full min-w-0">
+          <h2
+            id="household-title"
+            className="text-section-heading font-medium text-text"
+          >
             {name}
           </h2>
-          <p className="mt-1 text-body-small text-text-secondary">{describeMemberCount(members.length)}</p>
+       <div className="w-full flex items-start justify-between">
+          <p className="mt-1 text-body-small text-text-secondary">
+            {describeMemberCount(members.length)}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setIsLeaving(true)}
+            className={`${dangerLinkClassName} mt-1.5 shrink-0`}
+          >
+            Sair do household
+          </button>
+          </div>
         </div>
-        <button type="button" onClick={() => setIsLeaving(true)} className={`${dangerLinkClassName} mt-1.5 shrink-0`}>
-          Sair do household
-        </button>
       </div>
 
       <ul aria-label="Membros" className="mt-4 flex flex-col gap-4">
         {members.map((member) => (
           <li key={member.memberId} className="flex items-center gap-3">
-            <Avatar firstName={member.firstName} size="small" isYou={member.isYou} photoUrl={member.photoUrl} />
+            <Avatar
+              firstName={member.firstName}
+              size="small"
+              isYou={member.isYou}
+              photoUrl={member.photoUrl}
+            />
             <div className="min-w-0 flex-1">
-              <p className="text-body font-medium break-words text-text">{member.firstName}</p>
-              <p className="text-body-small text-text-secondary">{member.roleLabel}</p>
+              <p className="text-body font-medium break-words text-text">
+                {member.firstName}
+              </p>
+              <p className="text-body-small text-text-secondary">
+                {member.roleLabel}
+              </p>
             </div>
             {member.isYou ? null : (
               <button
@@ -80,7 +109,11 @@ export function HouseholdCard({ household }: { household: Household }) {
           <h3 className="text-body font-medium text-text">Convites enviados</h3>
           <ul className="mt-3 flex flex-col gap-4">
             {invitations.map((invitation) => (
-              <InvitationRow key={invitation.id} householdId={householdId} invitation={invitation} />
+              <InvitationRow
+                key={invitation.id}
+                householdId={householdId}
+                invitation={invitation}
+              />
             ))}
           </ul>
         </div>
@@ -95,7 +128,11 @@ export function HouseholdCard({ household }: { household: Household }) {
         Adicionar membro
       </button>
 
-      <InviteDialog householdId={householdId} isOpen={isInviting} onClose={() => setIsInviting(false)} />
+      <InviteDialog
+        householdId={householdId}
+        isOpen={isInviting}
+        onClose={() => setIsInviting(false)}
+      />
       <ConfirmDialog
         isOpen={memberToRemove !== null}
         onClose={() => setMemberToRemove(null)}
@@ -103,7 +140,12 @@ export function HouseholdCard({ household }: { household: Household }) {
         description={`${memberToRemove?.firstName ?? ""} perde o acesso ao household e a Agenda de ${memberToRemove?.firstName ?? ""} é apagada, com todos os itens. Essa ação não pode ser desfeita.`}
         confirmLabel="Remover"
         pendingLabel="Removendo…"
-        onConfirm={() => removeMemberAction({ householdId, memberId: memberToRemove?.memberId })}
+        onConfirm={() =>
+          removeMemberAction({
+            householdId,
+            memberId: memberToRemove?.memberId,
+          })
+        }
       />
       <ConfirmDialog
         isOpen={isLeaving}
@@ -118,7 +160,13 @@ export function HouseholdCard({ household }: { household: Household }) {
   );
 }
 
-function InvitationRow({ householdId, invitation }: { householdId: string; invitation: InvitationItemView }) {
+function InvitationRow({
+  householdId,
+  invitation,
+}: {
+  householdId: string;
+  invitation: InvitationItemView;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const isCancel = invitation.action === "cancel";
@@ -127,7 +175,9 @@ function InvitationRow({ householdId, invitation }: { householdId: string; invit
     setError(null);
     startTransition(async () => {
       const input = { householdId, invitationId: invitation.id };
-      const result = isCancel ? await revokeInvitationAction(input) : await deleteDeclinedInvitationAction(input);
+      const result = isCancel
+        ? await revokeInvitationAction(input)
+        : await deleteDeclinedInvitationAction(input);
       if (!result.ok) setError(result.message);
     });
   }
@@ -142,7 +192,9 @@ function InvitationRow({ householdId, invitation }: { householdId: string; invit
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
-          <p className="min-w-0 text-body break-all text-text">{invitation.title}</p>
+          <p className="min-w-0 text-body break-all text-text">
+            {invitation.title}
+          </p>
           <button
             type="button"
             onClick={handleAction}
@@ -159,7 +211,9 @@ function InvitationRow({ householdId, invitation }: { householdId: string; invit
         >
           {invitation.status.label}
         </span>
-        <p className="mt-1 text-body-small text-text-secondary">{invitation.detail}</p>
+        <p className="mt-1 text-body-small text-text-secondary">
+          {invitation.detail}
+        </p>
         {error ? (
           <div className="mt-2">
             <FormAlert message={error} />

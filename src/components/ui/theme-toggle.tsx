@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useState } from "react";
-import { THEME_COOKIE, type Theme } from "@/lib/theme";
+import { getThemeColor, THEME_COOKIE, type Theme } from "@/lib/theme";
 
 const ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
 
@@ -15,6 +15,7 @@ export function ThemeToggle({ initialTheme, className = "" }: ThemeToggleProps) 
   function handleClick() {
     const nextTheme: Theme = isDark ? "light" : "dark";
     document.documentElement.dataset.theme = nextTheme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", getThemeColor(nextTheme));
     document.cookie = `${THEME_COOKIE}=${nextTheme}; path=/; max-age=${ONE_YEAR_IN_SECONDS}; samesite=lax`;
     setTheme(nextTheme);
   }

@@ -58,6 +58,7 @@
 
 /* Semantic tokens: shared by Tailwind utilities and styled-components (via var()). */
 :root {
+  --app-background: var(--color-lavender-100);
   --app-heading: var(--color-lavender-900);
   --app-text: var(--color-ink-900);
   --app-text-secondary: var(--color-ink-600);
@@ -83,6 +84,7 @@
 }
 
 [data-theme="dark"] {
+  --app-background: var(--color-lavender-950);
   --app-heading: var(--color-white);
   --app-text: var(--color-white);
   --app-text-secondary: var(--color-lavender-300);
@@ -122,6 +124,7 @@
 }
 
 html {
+  background-color: var(--app-background);
   color-scheme: light;
 }
 
@@ -130,6 +133,7 @@ html[data-theme="dark"] {
 }
 
 body {
+  background-color: var(--app-background);
   font-family: var(--font-sans);
   color: var(--app-text);
   -webkit-font-smoothing: antialiased;
