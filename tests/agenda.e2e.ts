@@ -59,8 +59,28 @@ test("Agenda shows the week and the agenda filter", async ({ page }) => {
   await expect(onlyAgenda).toBeDisabled();
   await page.keyboard.press("Escape");
 
-  await page.getByRole("link", { name: "Próxima semana" }).click();
-  await expect(page).toHaveURL(/\/agenda\?day=\d{4}-\d{2}-\d{2}&agendas=[\w-]+$/);
+  const nextWeekLink = page.getByRole("link", { name: "Próxima semana" });
+  const nextWeekUrl = new URL((await nextWeekLink.getAttribute("href"))!, page.url());
+  const nextDay = nextWeekUrl.searchParams.get("day");
+  const nextStart = nextWeekUrl.searchParams.get("start");
+  expect(nextDay).not.toBeNull();
+  expect(nextStart).not.toBeNull();
+  const selectedDate = new Date(`${nextDay}T00:00:00Z`);
+  const selectedWeekday = await page
+    .locator('nav[aria-label="Dias da semana"] a[aria-current="date"]')
+    .last()
+    .locator("span")
+    .nth(1)
+    .textContent();
+  expect(["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].indexOf(selectedWeekday!)).toBe(selectedDate.getUTCDay());
+  const targetWeekStart = new Date(`${nextStart}T00:00:00Z`);
+  expect(targetWeekStart.getUTCDay()).toBe(0);
+  const selectedDayOffset = (selectedDate.getTime() - targetWeekStart.getTime()) / 86_400_000;
+  expect(selectedDayOffset).toBeGreaterThanOrEqual(0);
+  expect(selectedDayOffset).toBeLessThan(7);
+
+  await nextWeekLink.click();
+  await expect(page).toHaveURL(/\/agenda\?day=\d{4}-\d{2}-\d{2}&agendas=[\w-]+&start=\d{4}-\d{2}-\d{2}$/);
   await expect(page.getByText("Nenhum compromisso no dia selecionado").filter({ visible: true })).toBeVisible();
 });
 

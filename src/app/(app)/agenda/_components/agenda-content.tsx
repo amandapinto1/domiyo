@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyDay } from "@/components/ui/empty-day";
 import { FormAlert } from "@/components/ui/form-alert";
 import { FOCUS_RING, OUTLINE_PILL } from "@/components/ui/styles";
-import { addDays, centeredDayStripStart, formatItemDate, formatMonth, formatMonthYear, formatWeekRange } from "@/lib/dates";
+import { addDays, centeredDayStripStart, formatItemDate, formatMonth, formatMonthYear, formatWeekRange, weekOf } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 import { WeekSwipeArea } from "../../_components/week-swipe-area";
 import { deleteAgendaItemAction } from "../_actions/delete-agenda-item";
@@ -54,11 +54,13 @@ export function AgendaContent({ view }: { view: AgendaView }) {
   const isWeekEmpty = items.length === 0;
   const openItem = (item: AgendaItemView) => setPanel({ kind: "detail", itemId: item.id });
   const startCreate = () => setPanel({ kind: "create" });
+  const previousWeekDay = addDays(selectedDay, -7);
+  const nextWeekDay = addDays(selectedDay, 7);
 
   const weekNavigation = (
     <div className="flex items-center justify-between gap-3">
       <Link
-        href={href(addDays(selectedDay, -7), agendasValue, centeredDayStripStart(addDays(selectedDay, -7)))}
+        href={href(previousWeekDay, agendasValue, weekOf(previousWeekDay)[0].date)}
         replace
         scroll={false}
         aria-label="Semana anterior"
@@ -68,7 +70,7 @@ export function AgendaContent({ view }: { view: AgendaView }) {
       </Link>
       <p className="text-body-small text-text-secondary">{formatWeekRange(week[0].date, week[6].date)}</p>
       <Link
-        href={href(addDays(selectedDay, 7), agendasValue, centeredDayStripStart(addDays(selectedDay, 7)))}
+        href={href(nextWeekDay, agendasValue, weekOf(nextWeekDay)[0].date)}
         replace
         scroll={false}
         aria-label="Próxima semana"

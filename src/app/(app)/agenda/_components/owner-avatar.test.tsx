@@ -14,6 +14,16 @@ describe("OwnersAvatar", () => {
     const markup = renderToStaticMarkup(<OwnersAvatar owners={owners} size="large" />);
 
     expect(markup.match(/role="img"/g)).toHaveLength(owners.length);
+    expect(markup).toContain("border-2 border-white");
+    expect(markup).toContain("dark:border-lavender-900");
+    expect(markup).toContain("-space-x-1.5");
     expect(markup).not.toContain("+2");
+  });
+
+  it("matches small avatar borders to the agenda item's background", () => {
+    const markup = renderToStaticMarkup(<OwnersAvatar owners={owners} borderColor="#b9b8e1" />);
+
+    expect(markup.match(/border-2/g)).toHaveLength(4);
+    expect(markup.match(/border-color:#b9b8e1/g)).toHaveLength(4);
   });
 });
