@@ -1,6 +1,6 @@
 import { FOCUS_RING } from "@/components/ui/styles";
 import type { AgendaItemView } from "../_data-access/get-agenda-view";
-import { OwnerAvatar } from "./owner-avatar";
+import { OwnersAvatar } from "./owner-avatar";
 
 type ItemCardProps = { item: AgendaItemView; layout: "list" | "grid"; compact?: boolean; onOpen: () => void };
 
@@ -31,7 +31,7 @@ export function ItemCard({ item, layout, compact = false, onOpen }: ItemCardProp
         <span className={`min-w-0 font-medium ${isList ? (compact ? "text-xs leading-4 wrap-break-words hyphens-auto" : "text-body-small") : "line-clamp-3 text-xs leading-4"}`} lang="pt-BR">
           {item.title}
         </span>
-        {isList ? <OwnerAvatar owner={item.owner} /> : null}
+        {isList ? <OwnersAvatar owners={item.owners} /> : null}
       </span>
       <span className={`flex w-full items-center justify-between gap-2 ${isList ? "mt-auto text-body-small" : "text-xs leading-4"}`}>
         <span className="min-w-0 truncate">{isList && item.type && !compact ? `${time} · ${item.type}` : time}</span>
@@ -40,7 +40,7 @@ export function ItemCard({ item, layout, compact = false, onOpen }: ItemCardProp
         ) : (
           <span className="flex shrink-0 items-center gap-1">
             {item.tag ? <ItemTag tag={item.tag} /> : null}
-            <OwnerAvatar owner={item.owner} />
+            <OwnersAvatar owners={item.owners} />
           </span>
         )}
       </span>

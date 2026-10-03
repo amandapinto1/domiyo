@@ -7,7 +7,11 @@ import { createAgendaItem } from "@/server/agendas";
 import { agendaItemSchema, type AgendaActionResult } from "../_components/agenda-item-schema";
 import { toItemInput, valueErrors } from "./item-input";
 
-const inputSchema = z.object({ householdId: z.uuid(), agendaId: z.uuid(), values: agendaItemSchema });
+const inputSchema = z.object({
+  householdId: z.uuid(),
+  agendaIds: z.array(z.uuid()).min(1).refine((ids) => new Set(ids).size === ids.length),
+  values: agendaItemSchema,
+});
 
 export async function createAgendaItemAction(input: unknown): Promise<AgendaActionResult> {
   await requireSession();
@@ -18,7 +22,7 @@ export async function createAgendaItemAction(input: unknown): Promise<AgendaActi
   const { householdId } = await requireHouseholdMember(parsed.data.householdId);
 
   try {
-    const result = await createAgendaItem(householdId, parsed.data.agendaId, toItemInput(parsed.data.values));
+    const result = await createAgendaItem(householdId, parsed.data.agendaIds, toItemInput(parsed.data.values));
     if (result === "agenda_not_found") return { ok: false, message: "Essa agenda não está mais disponível." };
   } catch {
     console.error("createAgendaItemAction failed");

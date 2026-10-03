@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import postgres from "postgres";
 import type { FullConfig } from "@playwright/test";
 
 // Synthetic accounts, recreated on every run in the separate test database.
@@ -10,6 +11,7 @@ export const E2E_NEWCOMER = { email: "e2e.carla@example.com", password: PASSWORD
 export const E2E_OWNER = { email: "e2e.olga@example.com", password: PASSWORD, name: "Olga", surname: "Ramos" };
 export const E2E_PARTNER = { email: "e2e.paula@example.com", password: PASSWORD, name: "Paula", surname: "Dias" };
 export const E2E_PLANNER = { email: "e2e.rita@example.com", password: PASSWORD, name: "Rita", surname: "Melo" };
+export const E2E_PLANNER_PARTNER = { email: "e2e.sofia@example.com", password: PASSWORD, name: "Sofia", surname: "Alves" };
 
 export default async function globalSetup(config: FullConfig) {
   const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -19,7 +21,7 @@ export default async function globalSetup(config: FullConfig) {
     execSync(command, { env: { ...process.env, DATABASE_URL: databaseUrl }, encoding: "utf8" }).trim();
 
   run("pnpm -s db:migrate:deploy");
-  for (const user of [E2E_USER, E2E_INVITER, E2E_MEMBER, E2E_NEWCOMER, E2E_OWNER, E2E_PARTNER, E2E_PLANNER]) {
+  for (const user of [E2E_USER, E2E_INVITER, E2E_MEMBER, E2E_NEWCOMER, E2E_OWNER, E2E_PARTNER, E2E_PLANNER, E2E_PLANNER_PARTNER]) {
     run(`pnpm -s user:create ${user.email} ${user.password} "${user.name}" "${user.surname}"`);
   }
   // Bia gets a household of her own; the invitation under test comes from Andréa's household.
@@ -28,6 +30,16 @@ export default async function globalSetup(config: FullConfig) {
   run(`pnpm -s invite:create ${E2E_OWNER.email} "Casa da Olga"`);
   // Rita's household is where the Agenda flows create, edit and delete items.
   run(`pnpm -s invite:create ${E2E_PLANNER.email} "Casa da Rita"`);
+  const client = postgres(databaseUrl, { max: 1 });
+  try {
+    const [planner] = await client`select id from users where email = ${E2E_PLANNER.email}`;
+    const [partner] = await client`select id from users where email = ${E2E_PLANNER_PARTNER.email}`;
+    const [membership] = await client`select household_id from household_members where user_id = ${planner.id}`;
+    await client`insert into household_members (household_id, user_id, role) values (${membership.household_id}, ${partner.id}, 'member')`;
+    await client`insert into agendas (household_id, owner_user_id, name) values (${membership.household_id}, ${partner.id}, ${`Agenda de ${E2E_PLANNER_PARTNER.name}`})`;
+  } finally {
+    await client.end();
+  }
   process.env.E2E_INVITE_PATH = run(`pnpm -s invite:create ${E2E_INVITER.email} "Casa da Andréa"`).split("\n").at(-1);
 
   // The dev server compiles routes on first request; warm the auth API so the first form submit is not slow.

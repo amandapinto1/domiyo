@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db";
-import { agendaItems, agendas, userPhotos, users, type AgendaItemSource } from "@/db/schema";
+import { agendaItemAgendas, agendaItems, agendas, userPhotos, users, type AgendaItemSource } from "@/db/schema";
 import { decryptText, encryptText, reencryptBytea, reencryptText } from "@/server/crypto";
 
 export type HouseholdAgenda = {
@@ -16,6 +16,7 @@ export type HouseholdAgenda = {
 export type AgendaItemRecord = {
   id: string;
   agendaId: string;
+  agendaIds: string[];
   startsAt: Date;
   endsAt: Date;
   color: string;
@@ -63,7 +64,7 @@ export async function listHouseholdAgendas(householdId: string): Promise<Househo
 const inRange = (householdId: string, agendaIds: string[], from: Date, to: Date) =>
   and(
     eq(agendas.householdId, householdId),
-    inArray(agendaItems.agendaId, agendaIds),
+    or(inArray(agendaItems.agendaId, agendaIds), inArray(agendaItemAgendas.agendaId, agendaIds)),
     gte(agendaItems.startsAt, from),
     lt(agendaItems.startsAt, to),
   );
@@ -80,6 +81,7 @@ export async function listAgendaItems(
     .select({
       id: agendaItems.id,
       agendaId: agendaItems.agendaId,
+      sharedAgendaId: agendaItemAgendas.agendaId,
       startsAt: agendaItems.startsAt,
       endsAt: agendaItems.endsAt,
       color: agendaItems.color,
@@ -93,9 +95,30 @@ export async function listAgendaItems(
     })
     .from(agendaItems)
     .innerJoin(agendas, eq(agendas.id, agendaItems.agendaId))
+    .leftJoin(agendaItemAgendas, eq(agendaItemAgendas.agendaItemId, agendaItems.id))
     .where(inRange(householdId, agendaIds, from, to))
     .orderBy(asc(agendaItems.startsAt));
-  return rows.map((row) => ({ ...row, title: row.title ?? "" }));
+  const records = new Map<string, AgendaItemRecord>();
+  for (const row of rows) {
+    const record = records.get(row.id) ?? {
+      id: row.id,
+      agendaId: row.agendaId,
+      agendaIds: [row.agendaId],
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+      color: row.color,
+      source: row.source,
+      title: row.title ?? "",
+      type: row.type,
+      location: row.location,
+      teacher: row.teacher,
+      content: row.content,
+      tag: row.tag,
+    };
+    if (row.sharedAgendaId && !record.agendaIds.includes(row.sharedAgendaId)) record.agendaIds.push(row.sharedAgendaId);
+    records.set(row.id, record);
+  }
+  return [...records.values()];
 }
 
 /** Start instants only (plaintext), for the month calendar's "dia com eventos" dots. */
@@ -105,34 +128,42 @@ export async function listItemStarts(householdId: string, agendaIds: string[], f
     .select({ startsAt: agendaItems.startsAt })
     .from(agendaItems)
     .innerJoin(agendas, eq(agendas.id, agendaItems.agendaId))
+    .leftJoin(agendaItemAgendas, eq(agendaItemAgendas.agendaItemId, agendaItems.id))
     .where(inRange(householdId, agendaIds, from, to));
-  return rows.map((row) => row.startsAt);
+  return [...new Map(rows.map((row) => [row.startsAt.getTime(), row.startsAt])).values()];
 }
 
-/** Adds a manual item to an agenda of this household. */
+/** Adds a manual item to one or more agendas of this household. */
 export async function createAgendaItem(
   householdId: string,
-  agendaId: string,
+  agendaIds: string[],
   input: AgendaItemInput,
 ): Promise<"created" | "agenda_not_found"> {
-  const [agenda] = await db
+  const uniqueAgendaIds = [...new Set(agendaIds)];
+  const householdAgendas = await db
     .select({ id: agendas.id })
     .from(agendas)
-    .where(and(eq(agendas.householdId, householdId), eq(agendas.id, agendaId)))
-    .limit(1);
-  if (!agenda) return "agenda_not_found";
+    .where(and(eq(agendas.householdId, householdId), inArray(agendas.id, uniqueAgendaIds)));
+  if (uniqueAgendaIds.length === 0 || householdAgendas.length !== uniqueAgendaIds.length) return "agenda_not_found";
 
   const title = encryptText(input.title);
-  await db.insert(agendaItems).values({
-    agendaId,
-    startsAt: input.startsAt,
-    endsAt: input.endsAt,
-    color: MANUAL_ITEM_COLOR,
-    source: "manual",
-    title: title.ciphertext,
-    type: encryptText(input.type).ciphertext,
-    location: encryptText(input.location).ciphertext,
-    keyVersion: title.keyVersion,
+  await db.transaction(async (tx) => {
+    const [item] = await tx.insert(agendaItems).values({
+      agendaId: uniqueAgendaIds[0],
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      color: MANUAL_ITEM_COLOR,
+      source: "manual",
+      title: title.ciphertext,
+      type: encryptText(input.type).ciphertext,
+      location: encryptText(input.location).ciphertext,
+      keyVersion: title.keyVersion,
+    }).returning({ id: agendaItems.id });
+    if (uniqueAgendaIds.length > 1) {
+      await tx.insert(agendaItemAgendas).values(
+        uniqueAgendaIds.slice(1).map((agendaId) => ({ agendaItemId: item.id, agendaId })),
+      );
+    }
   });
   return "created";
 }

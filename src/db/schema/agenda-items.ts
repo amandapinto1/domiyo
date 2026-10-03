@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 // Explicit extension: Node-run scripts import the schema directly.
 import { bytea } from "./columns.ts";
 import { agendas } from "./households.ts";
@@ -41,5 +41,21 @@ export const agendaItems = pgTable(
     check("agenda_items_source_check", sql`${table.source} in ('imported', 'manual')`),
     check("agenda_items_color_check", sql`${table.color} ~ '^#[0-9A-Fa-f]{6}$'`),
     check("agenda_items_time_check", sql`${table.endsAt} > ${table.startsAt}`),
+  ],
+);
+
+export const agendaItemAgendas = pgTable(
+  "agenda_item_agendas",
+  {
+    agendaItemId: uuid("agenda_item_id")
+      .notNull()
+      .references(() => agendaItems.id, { onDelete: "cascade" }),
+    agendaId: uuid("agenda_id")
+      .notNull()
+      .references(() => agendas.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.agendaItemId, table.agendaId] }),
+    index("agenda_item_agendas_agenda_id_idx").on(table.agendaId),
   ],
 );

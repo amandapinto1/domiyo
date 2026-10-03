@@ -21,3 +21,25 @@ export function OwnerAvatar({ owner, size = "small" }: { owner: ItemOwner; size?
     </span>
   );
 }
+
+export function OwnersAvatar({ owners, size = "small" }: { owners: ItemOwner[]; size?: "small" | "large" }) {
+  const visibleOwners = owners.slice(0, 3);
+  const remainingOwners = owners.slice(3);
+  const sizeClass = size === "large" ? "size-10 text-body-small" : "size-6 text-[0.625rem]";
+
+  return (
+    <span className="flex shrink-0 items-center -space-x-1" aria-label={owners.map((owner) => owner.name).join(", ")}>
+      {visibleOwners.map((owner) => <OwnerAvatar key={owner.id} owner={owner} size={size} />)}
+      {remainingOwners.length > 0 ? (
+        <span
+          role="img"
+          aria-label={`${remainingOwners.length} outros membros: ${remainingOwners.map((owner) => owner.name).join(", ")}`}
+          title={remainingOwners.map((owner) => owner.name).join(", ")}
+          className={`grid shrink-0 place-items-center rounded-full bg-white font-semibold text-lavender-900 ${sizeClass}`}
+        >
+          +{remainingOwners.length}
+        </span>
+      ) : null}
+    </span>
+  );
+}

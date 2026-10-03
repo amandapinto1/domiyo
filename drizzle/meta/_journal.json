@@ -71,6 +71,13 @@
       "when": 1790974663494,
       "tag": "0009_pending_import_read_finished",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790999890850,
+      "tag": "0010_agenda_item_sharing",
+      "breakpoints": true
     }
   ]
 }

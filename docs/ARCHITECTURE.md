@@ -112,6 +112,7 @@ Decided by the product owner on 2026-09-30. Treat this as the technical plan for
 | Data | Storage |
 | --- | --- |
 | Agenda item: `id`, `agenda_id`, `starts_at`, `ends_at` (`timestamptz`), subject color, `source` (imported/manual), `edited_manually`, audit timestamps | Plaintext, so the owner can inspect schedules by date in the database |
+| Agenda item to agenda associations (`agenda_item_agendas`) | Plaintext UUID relationships; manual items may have additional same-household agendas, while `agenda_id` remains the primary agenda |
 | Agenda item: title, type, location, teacher, class content, tag (NAF, AIM n, CBL, TBL, OSCE), notes | Encrypted |
 | Cronograma PDF bytes and original file name | Encrypted |
 | Profile photo bytes | Encrypted |
@@ -127,6 +128,7 @@ Mechanism:
 - Because the key travels inside every encrypting or decrypting query, disable statement and parameter logging for both the application role and the owner role (`log_statement = 'none'`, `log_min_duration_statement = -1`, `log_parameter_max_length = 0`, `log_parameter_max_length_on_error = 0`, no `pg_stat_statements` capture of parameters), check that the managed PostgreSQL's own logs follow these settings, and never paste the key into shared scripts, tickets, or chat. Keep a copy of the key in the owner's password manager: losing it makes the encrypted data unrecoverable.
 - Encrypted columns cannot be searched or sorted by the database; the MVP only needs date-range queries, which use the plaintext timestamps.
 - Implemented 2026-10-01 in `agenda_items` (migration `0003_agenda_items`): each content column is `pgp_sym_encrypt` ciphertext (`bytea`) with one `key_version` per row; editing an item re-encrypts every content column with the current key. Helpers: `src/server/crypto`; domain functions: `src/server/agendas`.
+- Manual items can be shared with additional agendas in the same household through `agenda_item_agendas`; the primary `agenda_id` remains on the item, imported items remain single-agenda, and list queries return each shared item once.
 - Key rotation re-encryption runs as a one-off server-side script started by the owner, not a scheduled job.
 
 ### Cronograma upload and reading

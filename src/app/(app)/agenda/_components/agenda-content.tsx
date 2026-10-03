@@ -20,7 +20,7 @@ import { DatePicker } from "./date-picker";
 import { DayList } from "./day-list";
 import { ItemDetail } from "./item-detail";
 import { ItemForm } from "./item-form";
-import { OwnerAvatar } from "./owner-avatar";
+import { OwnersAvatar } from "./owner-avatar";
 import { WeekGrid } from "./week-grid";
 
 const ICON_BUTTON = `grid size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-lavender-100 text-lavender-900 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-lavender-800 dark:text-white ${FOCUS_RING}`;
@@ -226,7 +226,7 @@ export function AgendaContent({ view }: { view: AgendaView }) {
         titleId={`${panelId}-title`}
         titleColor={activeItem?.color}
         variant="drawer"
-        mobileHeaderAction={panel?.kind === "detail" && activeItem ? <OwnerAvatar owner={activeItem.owner} size="large" /> : undefined}
+        mobileHeaderAction={panel?.kind === "detail" && activeItem ? <OwnersAvatar owners={activeItem.owners} size="large" /> : undefined}
       >
         {panel?.kind === "detail" && activeItem ? (
           <ItemDetail item={activeItem} onEdit={() => setPanel({ kind: "edit", itemId: activeItem.id })} />
@@ -262,7 +262,7 @@ export function AgendaContent({ view }: { view: AgendaView }) {
         title="Excluir este item?"
         description={
           itemToDelete
-            ? `“${itemToDelete.title}”, de ${lowerFirst(formatItemDate(itemToDelete.date))}, sai da ${itemToDelete.agendaName}. Essa ação não pode ser desfeita.`
+            ? `“${itemToDelete.title}”, de ${lowerFirst(formatItemDate(itemToDelete.date))}, sai de ${itemToDelete.agendaNames.join(" e ")}. Essa ação não pode ser desfeita.`
             : ""
         }
         confirmLabel="Excluir"

@@ -81,7 +81,7 @@ export function PullToRefresh() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)_+_0.5rem)] z-50 flex justify-center"
+      className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.5rem)] z-50 flex justify-center"
     >
       <div
         role={isPending ? "status" : undefined}

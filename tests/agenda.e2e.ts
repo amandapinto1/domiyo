@@ -1,5 +1,5 @@
 import { expect, test, type Cookie } from "@playwright/test";
-import { E2E_PLANNER } from "./global-setup";
+import { E2E_PLANNER, E2E_PLANNER_PARTNER } from "./global-setup";
 import { sessionCookies } from "./session";
 
 let cookies: Cookie[] = [];
@@ -47,7 +47,7 @@ test("cronograma upload rejects a file without a PDF signature", async ({ page }
 test.describe.serial("agenda items", () => {
   test.skip(({ isMobile }) => isMobile, "stateful flow runs once");
 
-  test("creates, edits and deletes a manual item", async ({ page }) => {
+  test("creates, shares, edits and deletes a manual item", async ({ page, browser }, testInfo) => {
     await page.getByRole("button", { name: "Novo item" }).first().click();
     const form = page.getByRole("dialog", { name: "Novo item" });
     await form.getByRole("button", { name: "Adicionar item" }).click();
@@ -66,6 +66,7 @@ test.describe.serial("agenda items", () => {
 
     await form.getByLabel("Fim").fill("11:30");
     await form.getByLabel("Local").fill("Hospital");
+    await form.getByRole("checkbox", { name: `Agenda de ${E2E_PLANNER_PARTNER.name}` }).check();
     await form.getByRole("button", { name: "Adicionar item" }).click();
     await expect(form).toBeHidden();
 
@@ -77,7 +78,9 @@ test.describe.serial("agenda items", () => {
     await expect(detail).toContainText("Criado manualmente");
     await expect(detail).toContainText("09:00 – 11:30");
     await expect(detail).toContainText("Hospital");
-    await expect(detail.getByRole("img")).toBeVisible();
+    await expect(detail.getByRole("img", { name: `${E2E_PLANNER.name} ${E2E_PLANNER.surname}` })).toBeVisible();
+    await expect(detail.getByRole("img", { name: `${E2E_PLANNER_PARTNER.name} ${E2E_PLANNER_PARTNER.surname}` })).toBeVisible();
+    await expect(detail).toContainText(`Agenda de ${E2E_PLANNER.name}, Agenda de ${E2E_PLANNER_PARTNER.name}`);
     const closeControls = detail.locator('button[aria-label="Fechar"]');
     await expect(closeControls).toHaveCount(2);
     await expect(closeControls.first()).toBeVisible();
@@ -99,6 +102,12 @@ test.describe.serial("agenda items", () => {
 
     await page.goto("/home");
     await expect(page.getByText("Plantão E2E")).toBeVisible();
+    const partnerContext = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
+    await partnerContext.addCookies(await sessionCookies(browser, testInfo.project.use.baseURL, E2E_PLANNER_PARTNER));
+    const partnerPage = await partnerContext.newPage();
+    await partnerPage.goto("/home");
+    await expect(partnerPage.getByText("Plantão E2E")).toBeVisible();
+    await partnerContext.close();
     await page.goto("/agenda");
 
     await page.getByRole("button", { name: /Plantão E2E/ }).first().click();

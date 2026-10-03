@@ -91,6 +91,73 @@ export function AgendaSelector({ agendas, selected, onChange }: AgendaSelectorPr
   );
 }
 
+export function AgendaMultiSelect({ agendas, selected, onChange }: AgendaSelectorProps) {
+  const id = useId();
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selectedAgendas = agendas.filter((agenda) => selected.includes(agenda.id));
+  const label = selectedAgendas.length === 1
+    ? selectedAgendas[0].name
+    : `${selectedAgendas.length} agendas selecionadas`;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={rootRef} className="relative w-full">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls={`${id}-options`}
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex h-13.5 w-full cursor-pointer items-center justify-between gap-3 rounded-md border-[1.5px] border-lavender-600 bg-white px-4 text-left text-body text-text dark:bg-lavender-950 ${FOCUS_RING}`}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown
+          aria-hidden="true"
+          className={`size-5 shrink-0 transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {isOpen ? (
+        <fieldset
+          id={`${id}-options`}
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg dark:border-lavender-800 dark:bg-lavender-900"
+        >
+          <legend className="sr-only">Agendas do evento</legend>
+          {agendas.map((agenda) => {
+            const isChecked = selected.includes(agenda.id);
+            return (
+              <label key={agenda.id} className={OPTION}>
+                <Checkbox
+                  checked={isChecked}
+                  disabled={isChecked && selected.length === 1}
+                  onChange={() => onChange(isChecked
+                    ? selected.filter((agendaId) => agendaId !== agenda.id)
+                    : [...selected, agenda.id])}
+                />
+                {agenda.name}
+              </label>
+            );
+          })}
+        </fieldset>
+      ) : null}
+    </div>
+  );
+}
+
 export function Checkbox({
   id,
   checked,

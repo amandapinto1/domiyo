@@ -10,14 +10,16 @@ import { parseSelectedAgendas } from "../_components/agenda-selection";
 
 export type AgendaOption = { id: string; name: string; ownerFirstName: string };
 
-export type ItemOwner = { name: string; initials: string; photoUrl: string | null };
+export type ItemOwner = { id: string; name: string; initials: string; photoUrl: string | null };
 
 /** Times are "HH:mm" and `date` is "YYYY-MM-DD", both in the app time zone. */
 export type AgendaItemView = {
   id: string;
   agendaId: string;
+  agendaIds: string[];
   agendaName: string;
-  owner: ItemOwner;
+  agendaNames: string[];
+  owners: ItemOwner[];
   date: string;
   startTime: string;
   endTime: string;
@@ -58,6 +60,7 @@ function initials(firstName: string, surname: string): string {
 function toOwner(agenda: HouseholdAgenda): ItemOwner {
   const { ownerUserId, ownerFirstName, ownerSurname, ownerPhotoUpdatedAt } = agenda;
   return {
+    id: ownerUserId,
     name: `${ownerFirstName} ${ownerSurname}`.trim(),
     initials: initials(ownerFirstName, ownerSurname),
     photoUrl: ownerPhotoUpdatedAt ? ROUTES.userPhoto(ownerUserId, ownerPhotoUpdatedAt.getTime()) : null,
@@ -95,12 +98,15 @@ export async function getAgendaView(params: {
   const items = records.flatMap((record): AgendaItemView[] => {
     const agenda = agendaById.get(record.agendaId);
     if (!agenda) return [];
+    const itemAgendas = householdAgendas.filter((candidate) => record.agendaIds.includes(candidate.id));
     return [
       {
         id: record.id,
         agendaId: record.agendaId,
+        agendaIds: itemAgendas.map((candidate) => candidate.id),
         agendaName: agenda.name,
-        owner: toOwner(agenda),
+        agendaNames: itemAgendas.map((candidate) => candidate.name),
+        owners: itemAgendas.map(toOwner),
         date: calendarDateIn(APP_TIME_ZONE, record.startsAt),
         startTime: timeIn(APP_TIME_ZONE, record.startsAt),
         endTime: timeIn(APP_TIME_ZONE, record.endsAt),

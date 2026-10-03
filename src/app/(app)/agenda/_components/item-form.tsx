@@ -14,7 +14,7 @@ import { createAgendaItemAction } from "../_actions/create-agenda-item";
 import { updateAgendaItemAction } from "../_actions/update-agenda-item";
 import type { AgendaItemView, AgendaOption } from "../_data-access/get-agenda-view";
 import { agendaItemSchema, type AgendaItemValues } from "./agenda-item-schema";
-import { Checkbox } from "./agenda-selector";
+import { AgendaMultiSelect, Checkbox } from "./agenda-selector";
 import { DatePicker } from "./date-picker";
 
 type ItemFormProps = {
@@ -35,7 +35,7 @@ const ALL_DAY = { startTime: "00:00", endTime: "23:59" } as const;
 /** "Editar item" / "Novo item": title, date, times, type and location. */
 export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultDate, onDone, onCancel, onDelete }: ItemFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
-  const [agendaId, setAgendaId] = useState(item?.agendaId ?? defaultAgendaId);
+  const [agendaIds, setAgendaIds] = useState(item?.agendaIds ?? [defaultAgendaId]);
   const [isPickingDate, setIsPickingDate] = useState(false);
   const [isAllDay, setIsAllDay] = useState(
     item?.startTime === ALL_DAY.startTime && item?.endTime === ALL_DAY.endTime,
@@ -64,7 +64,7 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
     setFormError(null);
     const result = item
       ? await updateAgendaItemAction({ householdId, itemId: item.id, values })
-      : await createAgendaItemAction({ householdId, agendaId, values });
+      : await createAgendaItemAction({ householdId, agendaIds, values });
     if (result.ok) {
       onDone();
       return;
@@ -92,7 +92,7 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
     errorId: `item-${name}-error`,
     error: errors[name]?.message,
   });
-  const agendaName = agendas.find((agenda) => agenda.id === agendaId)?.name ?? "";
+  const agendaNames = agendas.filter((agenda) => agendaIds.includes(agenda.id)).map((agenda) => agenda.name);
   const date = useWatch({ control: formControl, name: "date" });
 
   function toggleAllDay() {
@@ -131,7 +131,7 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
         isOpen={isPickingDate}
         onClose={() => setIsPickingDate(false)}
         householdId={householdId}
-        agendaIds={[agendaId]}
+        agendaIds={agendaIds}
         selectedDay={date}
         onSelect={(day) => {
           setValue("date", day, { shouldValidate: true });
@@ -162,26 +162,13 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
 
       {item ? (
         <div>
-          <p className="text-body-small text-text-secondary">Pertence a</p>
-          <p className="mt-0.5 text-body text-text">{agendaName}</p>
+          <p className="text-body-small text-text-secondary">Agendas</p>
+          <p className="mt-0.5 text-body text-text">{agendaNames.join(", ")}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <label htmlFor="item-agenda" className="text-body-small font-medium text-text">
-            Pertence a
-          </label>
-          <select
-            id="item-agenda"
-            value={agendaId}
-            onChange={(event) => setAgendaId(event.target.value)}
-            className={`h-13.5 w-full cursor-pointer rounded-md border-[1.5px] border-lavender-600 bg-white px-4 text-body text-text dark:bg-lavender-950 ${FOCUS_RING}`}
-          >
-            {agendas.map((agenda) => (
-              <option key={agenda.id} value={agenda.id}>
-                {agenda.name}
-              </option>
-            ))}
-          </select>
+          <label className="text-body-small font-medium text-text">Agendas</label>
+          <AgendaMultiSelect agendas={agendas} selected={agendaIds} onChange={setAgendaIds} />
         </div>
       )}
 

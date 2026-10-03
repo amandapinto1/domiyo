@@ -7,7 +7,7 @@ type ItemDetailProps = { item: AgendaItemView; onEdit: () => void };
 /** "Detalhe do item": every known field of the item, then "Editar item". */
 export function ItemDetail({ item, onEdit }: ItemDetailProps) {
   const fields: [string, string | null][] = [
-    ["Pertence a", item.agendaName],
+    [item.agendaNames.length > 1 ? "Agendas" : "Pertence a", item.agendaNames.join(", ")],
     ["Origem", item.isImported ? "Importado do PDF" : "Criado manualmente"],
     ["Data e horário", `${formatItemDate(item.date)} · ${item.startTime} – ${item.endTime}`],
     ["Local", item.location],
