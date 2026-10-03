@@ -42,12 +42,41 @@ describe("email failure details", () => {
       errorName: "Error",
       errorCode: "EAUTH",
       smtpResponseCode: 535,
+      configuredVariables: [
+        "EMAIL_TRANSPORT",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_SECURE",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_FROM_NAME",
+      ],
+    });
+  });
+
+  it("logs only allowlisted SMTP command names", () => {
+    const error = Object.assign(new Error("Timed out"), { code: "ETIMEDOUT", command: "CONN" });
+
+    expect(emailFailureDetails(error)).toMatchObject({
+      errorCode: "ETIMEDOUT",
+      smtpCommand: "CONN",
     });
   });
 
   it("reports missing configuration names without logging the raw message", () => {
     expect(emailFailureDetails(new Error("Missing SMTP configuration: SMTP_PASSWORD."))).toEqual({
       errorName: "Error",
+      configuredVariables: [
+        "EMAIL_TRANSPORT",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_SECURE",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_FROM_NAME",
+      ],
       missingConfiguration: ["SMTP_PASSWORD"],
     });
   });

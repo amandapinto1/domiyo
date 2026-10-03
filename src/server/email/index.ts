@@ -6,14 +6,32 @@ export type Email = { to: string; subject: string; html: string; text: string };
 export function emailFailureDetails(error: unknown): {
   errorName: string;
   errorCode?: string;
+  smtpCommand?: string;
   smtpResponseCode?: number;
+  configuredVariables: string[];
   missingConfiguration?: string[];
 } {
-  if (!(error instanceof Error)) return { errorName: "UnknownError" };
+  const variableNames = [
+    "EMAIL_TRANSPORT",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_SECURE",
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+    "EMAIL_FROM_ADDRESS",
+    "EMAIL_FROM_NAME",
+  ];
+  const configuredVariables = variableNames.filter((name) => Boolean(process.env[name]));
 
-  const metadata = error as Error & { code?: unknown; responseCode?: unknown };
+  if (!(error instanceof Error)) return { errorName: "UnknownError", configuredVariables };
+
+  const metadata = error as Error & { code?: unknown; command?: unknown; responseCode?: unknown };
   const errorCode = typeof metadata.code === "string" && /^[A-Z0-9_]{1,32}$/.test(metadata.code)
     ? metadata.code
+    : undefined;
+  const smtpCommand = typeof metadata.command === "string"
+    && ["CONN", "GREETING", "EHLO", "STARTTLS", "AUTH", "MAIL FROM", "RCPT TO", "DATA", "QUIT"].includes(metadata.command)
+    ? metadata.command
     : undefined;
   const smtpResponseCode = typeof metadata.responseCode === "number"
     && Number.isInteger(metadata.responseCode)
@@ -32,7 +50,9 @@ export function emailFailureDetails(error: unknown): {
   return {
     errorName: /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "Error",
     ...(errorCode ? { errorCode } : {}),
+    ...(smtpCommand ? { smtpCommand } : {}),
     ...(smtpResponseCode ? { smtpResponseCode } : {}),
+    configuredVariables,
     ...(missingConfiguration.length > 0 ? { missingConfiguration } : {}),
   };
 }
