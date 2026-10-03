@@ -8,7 +8,19 @@
 
 Values in `{braces}` are filled by the server. Links always use `APP_PUBLIC_URL`. Dates use the pt-BR format and the MVP time zone (`America/Fortaleza`).
 
-## 1. Household invitation
+## 1. Email confirmation
+
+Sent after sign-up; the account cannot sign in before confirmation.
+
+- **Subject:** "Confirme seu e-mail no Domiyo"
+- **Title:** "Confirme seu e-mail"
+- **Body:** "Falta só um passo para começar a usar o Domiyo: confirme que este e-mail é seu."
+- **Button:** "Confirmar e-mail" → `{verification_url}`
+- **Fallback:** "Se o botão não funcionar, copie e cole este link no navegador:" + `{verification_url}`
+- **Expiry note:** "O link vale por 1 hora e só pode ser usado uma vez. Se você não criou uma conta, ignore este e-mail."
+- **Footer:** "E-mail automático do Domiyo — não responda."
+
+## 2. Household invitation
 
 - **Subject:** `{inviter_first_name} convidou você para o Domiyo`
 - **Title:** `{inviter_first_name} convidou você para o Domiyo`
@@ -18,7 +30,7 @@ Values in `{braces}` are filled by the server. Links always use `APP_PUBLIC_URL`
 - **Expiry note:** "Este convite vale até {expiry_date} e só pode ser usado uma vez."
 - **Footer:** "Você recebeu este e-mail porque {inviter_full_name} informou este endereço ao convidar você. Se não conhece essa pessoa, ignore esta mensagem." / "E-mail automático do Domiyo — não responda."
 
-## 2. Password reset
+## 3. Password reset
 
 Sent only when the address belongs to an account; the screen always shows the same neutral message (no account discovery).
 
@@ -30,7 +42,7 @@ Sent only when the address belongs to an account; the screen always shows the sa
 - **Expiry note:** "O link vale por 1 hora e só pode ser usado uma vez. Se você não pediu, ignore este e-mail: sua senha continua a mesma."
 - **Footer:** "E-mail automático do Domiyo — não responda."
 
-## 3. Password changed
+## 4. Password changed
 
 Security notice sent after any password change.
 
