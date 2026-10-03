@@ -9,7 +9,7 @@ import { hashPassword } from "../src/server/auth/password.ts";
 const [rawEmail, password, name, surname = ""] = process.argv.slice(2);
 const databaseUrl = process.env.DATABASE_URL;
 
-if (process.env.NODE_ENV === "production") throw new Error("Refusing to run in production.");
+if (process.env.NODE_ENV !== "development") throw new Error("This command is only available in development.");
 if (!databaseUrl) throw new Error("DATABASE_URL is not set.");
 if (!rawEmail || !password || !name) throw new Error("Usage: pnpm user:create <email> <password> <name> [surname]");
 

@@ -60,7 +60,7 @@ The package manager is `pnpm` (Node.js 22). Scripts in `package.json`:
 - Install: `pnpm install`
 - Database (Docker Compose, creates `domiyo` and `domiyo_test`): `pnpm db:up`
 - Migrations: `pnpm db:generate --name <change>` after a schema change, `pnpm db:migrate` to apply locally; production applies them with `pnpm db:migrate:deploy` as Railway's pre-deploy step (`.railway/railway.ts`)
-- Local verified user (skips email confirmation): `pnpm user:create <email> <password> <name> [surname]`
+- Local verified user (development only; skips email confirmation): `pnpm user:create <email> <password> <name> [surname]`
 - Local invitation link without the UI (used by e2e setup): `pnpm invite:create <inviterEmail> [householdName]`
 - Dev server: `pnpm dev` (reads `.env`; see `.env.example`)
 - Unit tests: `pnpm test`; end-to-end (needs `TEST_DATABASE_URL`, stop `pnpm dev` first): `pnpm exec playwright install chromium` once, then `pnpm test:e2e`

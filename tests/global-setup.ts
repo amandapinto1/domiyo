@@ -17,12 +17,18 @@ export default async function globalSetup(config: FullConfig) {
   const databaseUrl = process.env.TEST_DATABASE_URL;
   if (!databaseUrl) throw new Error("TEST_DATABASE_URL is not set (see .env.example).");
 
-  const run = (command: string) =>
-    execSync(command, { env: { ...process.env, DATABASE_URL: databaseUrl }, encoding: "utf8" }).trim();
+  const run = (command: string, nodeEnv?: NodeJS.ProcessEnv["NODE_ENV"]) =>
+    execSync(command, {
+      env: { ...process.env, DATABASE_URL: databaseUrl, ...(nodeEnv ? { NODE_ENV: nodeEnv } : {}) },
+      encoding: "utf8",
+    }).trim();
 
   run("pnpm -s db:migrate:deploy");
+  const userCreateNodeEnv = process.env.NODE_ENV === undefined || process.env.NODE_ENV === "test"
+    ? "development"
+    : process.env.NODE_ENV;
   for (const user of [E2E_USER, E2E_INVITER, E2E_MEMBER, E2E_NEWCOMER, E2E_OWNER, E2E_PARTNER, E2E_PLANNER, E2E_PLANNER_PARTNER]) {
-    run(`pnpm -s user:create ${user.email} ${user.password} "${user.name}" "${user.surname}"`);
+    run(`pnpm -s user:create ${user.email} ${user.password} "${user.name}" "${user.surname}"`, userCreateNodeEnv);
   }
   // Bia gets a household of her own; the invitation under test comes from Andréa's household.
   run(`pnpm -s invite:create ${E2E_MEMBER.email} "Casa da Bia"`);

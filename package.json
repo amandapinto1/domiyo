@@ -16,7 +16,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:deploy": "node scripts/migrate.ts",
     "invitations:cleanup": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --conditions=react-server scripts/cleanup-expired-invitations.ts",
-      "data:cleanup": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --conditions=react-server scripts/cleanup-expired-data.ts",
+    "data:cleanup": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --conditions=react-server scripts/cleanup-expired-data.ts",
     "user:create": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --conditions=react-server scripts/create-user.ts",
     "invite:create": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/create-invitation.ts"
   },
@@ -28,6 +28,7 @@
     "lucide-react": "1.49.0",
     "next": "16.3.8",
     "nodemailer": "^10.0.13",
+    "pnpm": "^12.8.1",
     "postgres": "3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",

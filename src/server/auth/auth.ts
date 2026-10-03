@@ -9,6 +9,10 @@ import { passwordChangedMessage, resetPasswordMessage, verifyEmailMessage } from
 import { hashPassword, verifyPassword } from "./password";
 
 const appPublicUrl = process.env.APP_PUBLIC_URL;
+const trustedOrigins = [
+  appPublicUrl,
+  ...(process.env.NODE_ENV === "development" ? ["http://192.168.100.11:3000"] : []),
+].filter((origin): origin is string => Boolean(origin));
 const ONE_HOUR_IN_SECONDS = 60 * 60;
 const STRICT_RATE_LIMIT = { window: 60, max: 3 };
 
@@ -56,6 +60,6 @@ export const auth = betterAuth({
       "/reset-password": STRICT_RATE_LIMIT,
     },
   },
-  trustedOrigins: appPublicUrl ? [appPublicUrl] : [],
+  trustedOrigins,
   advanced: { database: { generateId: "uuid" } },
 });
