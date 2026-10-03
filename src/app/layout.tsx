@@ -16,6 +16,15 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Domiyo",
   description: "Organize a rotina do household em um só lugar.",
+  appleWebApp: { capable: true, title: "Domiyo", statusBarStyle: "default" },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icone-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icone-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
