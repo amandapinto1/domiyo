@@ -8,7 +8,8 @@ import { getCronogramaImportState, getCurrentCronogramaInfo } from "@/server/cro
 const agendaIdSchema = z.uuid();
 
 export async function getCronogramaImportView(agendaIdParam: string | string[] | undefined) {
-  const { householdId, userId } = await requireCurrentMembership();
+  const { householdId, userId, canImportPdf } = await requireCurrentMembership();
+  if (canImportPdf !== true) notFound();
   const agendas = await listHouseholdAgendas(householdId);
   const ownAgendaId = agendas.find((agenda) => agenda.ownerUserId === userId)?.id ?? null;
   const parsedId = agendaIdSchema.safeParse(agendaIdParam);

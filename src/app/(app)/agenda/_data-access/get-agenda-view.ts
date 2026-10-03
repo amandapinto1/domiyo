@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { addDays, APP_TIME_ZONE, calendarDateIn, timeIn, weekOf, zonedTimeToUtc, type WeekDay } from "@/lib/dates";
+import { addDays, APP_TIME_ZONE, calendarDateIn, centeredDayStripStart, timeIn, weekOf, zonedTimeToUtc, type WeekDay } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 import { requireCurrentMembership } from "@/server/auth";
 import { listAgendaItems, listHouseholdAgendas, type AgendaItemRecord, type HouseholdAgenda } from "@/server/agendas";
@@ -38,10 +38,12 @@ export type AgendaView = {
   today: string;
   selectedDay: string;
   week: WeekDay[];
+  dayStripStart: string;
   agendas: AgendaOption[];
   selectedAgendaIds: string[];
   /** The signed-in member's own agenda, preselected for new items. */
   ownAgendaId: string | null;
+  canImportPdf: boolean;
   itemsUnavailable: boolean;
   currentCronograma: { fileName: string; importedAt: Date } | null;
   /** Every item of the selected agendas in the week of `selectedDay`. */
@@ -70,13 +72,16 @@ function toOwner(agenda: HouseholdAgenda): ItemOwner {
 /** Agenda for the signed-in member: the household's agendas and the selected week's items. */
 export async function getAgendaView(params: {
   day: string | string[] | undefined;
+  start: string | string[] | undefined;
   agendas: string | string[] | undefined;
 }): Promise<AgendaView> {
-  const { householdId, userId } = await requireCurrentMembership();
+  const { householdId, userId, canImportPdf } = await requireCurrentMembership();
   const today = calendarDateIn(APP_TIME_ZONE);
   const requestedDay = daySchema.safeParse(params.day);
   const selectedDay = requestedDay.success ? requestedDay.data : today;
   const week = weekOf(selectedDay);
+  const requestedStripStart = daySchema.safeParse(params.start);
+  const dayStripStart = requestedStripStart.success ? requestedStripStart.data : centeredDayStripStart(selectedDay);
 
   const householdAgendas = await listHouseholdAgendas(householdId);
   const selectedAgendaIds = parseSelectedAgendas(
@@ -127,9 +132,11 @@ export async function getAgendaView(params: {
     today,
     selectedDay,
     week,
+    dayStripStart,
     agendas: householdAgendas.map(({ id, name, ownerFirstName }) => ({ id, name, ownerFirstName })),
     selectedAgendaIds,
     ownAgendaId,
+    canImportPdf: canImportPdf === true,
     itemsUnavailable: result.unavailable,
     currentCronograma,
     items,

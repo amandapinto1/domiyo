@@ -14,7 +14,7 @@ import {
 } from "@/db/schema";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export type Membership = { householdId: string; role: string };
+export type Membership = { householdId: string; role: string; canImportPdf: boolean | null };
 export type MemberIdentity = { id: string; firstName: string };
 export type InvitationView = { householdName: string; inviterName: string; expiresAt: Date };
 export type HouseholdMember = {
@@ -66,7 +66,7 @@ const isOpenInvitation = (token: string) =>
 
 export async function getMembership(userId: string): Promise<Membership | null> {
   const [membership] = await db
-    .select({ householdId: householdMembers.householdId, role: householdMembers.role })
+    .select({ householdId: householdMembers.householdId, role: householdMembers.role, canImportPdf: householdMembers.canImportPdf })
     .from(householdMembers)
     .where(eq(householdMembers.userId, userId))
     .limit(1);
@@ -76,7 +76,7 @@ export async function getMembership(userId: string): Promise<Membership | null> 
 /** The user's membership in this specific household, or null when they are not a member. */
 export async function getHouseholdMembership(userId: string, householdId: string): Promise<Membership | null> {
   const [membership] = await db
-    .select({ householdId: householdMembers.householdId, role: householdMembers.role })
+    .select({ householdId: householdMembers.householdId, role: householdMembers.role, canImportPdf: householdMembers.canImportPdf })
     .from(householdMembers)
     .where(and(eq(householdMembers.userId, userId), eq(householdMembers.householdId, householdId)))
     .limit(1);
@@ -326,14 +326,21 @@ async function deleteMembership(tx: Transaction, householdId: string, userId: st
     .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.userId, userId)));
 }
 
-/** Removes another member of the household. Members leave through `leaveHousehold`, never through this. */
+/** Removes another member of the household. Only admins may do so; members leave through `leaveHousehold`. */
 export async function removeMember(
   householdId: string,
   memberId: string,
   actingUserId: string,
-): Promise<"removed" | "not_found"> {
+): Promise<"removed" | "not_found" | "not_allowed"> {
   return db.transaction(async (tx) => {
     await lockHousehold(tx, householdId);
+    const [actor] = await tx
+      .select({ role: householdMembers.role })
+      .from(householdMembers)
+      .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.userId, actingUserId)))
+      .limit(1);
+    if (actor?.role !== "admin") return "not_allowed";
+
     const [member] = await tx
       .select({ userId: householdMembers.userId })
       .from(householdMembers)

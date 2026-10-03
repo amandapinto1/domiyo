@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 // Explicit extension: Node-run scripts import this file directly.
 import { users } from "./auth.ts";
 
@@ -22,6 +22,7 @@ export const householdMembers = pgTable(
       .unique()
       .references(() => users.id, { onDelete: "cascade" }),
     role: text("role").notNull().default("member"),
+    canImportPdf: boolean("can_import_pdf"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("household_members_household_id_idx").on(table.householdId)],

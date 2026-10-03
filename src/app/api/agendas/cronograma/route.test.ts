@@ -65,8 +65,8 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   mocks.tasks.length = 0;
   mocks.requireSession.mockResolvedValue({ user: { id: "user-1" } });
-  mocks.getMembership.mockResolvedValue({ householdId: "house-a" });
-  mocks.requireHouseholdMember.mockResolvedValue({ householdId: "house-a", userId: "user-1" });
+  mocks.getMembership.mockResolvedValue({ householdId: "house-a", canImportPdf: true });
+  mocks.requireHouseholdMember.mockResolvedValue({ householdId: "house-a", userId: "user-1", canImportPdf: true });
   mocks.isAgendaInHousehold.mockResolvedValue(true);
   mocks.isCronogramaReadInProgress.mockResolvedValue(false);
   mocks.consumeCronogramaUpload.mockResolvedValue(true);
@@ -98,6 +98,16 @@ describe("POST /api/agendas/cronograma", () => {
 
     expect(response.status).toBe(404);
     expect(mocks.requireHouseholdMember).not.toHaveBeenCalled();
+    expect(mocks.savePendingCronogramaImport).not.toHaveBeenCalled();
+  });
+
+  it.each([false, null])("denies PDF upload when canImportPdf is %s", async (canImportPdf) => {
+    mocks.requireHouseholdMember.mockResolvedValue({ householdId: "house-a", userId: "user-1", canImportPdf });
+
+    const response = await POST(upload());
+
+    expect(response.status).toBe(404);
+    expect(mocks.consumeCronogramaUpload).not.toHaveBeenCalled();
     expect(mocks.savePendingCronogramaImport).not.toHaveBeenCalled();
   });
 

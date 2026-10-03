@@ -1,0 +1,1 @@
+ALTER TABLE "household_members" ADD COLUMN "can_import_pdf" boolean;

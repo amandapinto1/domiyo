@@ -21,6 +21,7 @@ export type ProfileView = {
     name: string;
     members: MemberView[];
     invitations: InvitationItemView[];
+    canRemoveMembers: boolean;
     /** Leaving would delete the household and all of its data. */
     isLastMember: boolean;
   };
@@ -29,7 +30,7 @@ export type ProfileView = {
 /** Perfil for the signed-in member: their account and their household's members and invitations. */
 export async function getProfileView(): Promise<ProfileView> {
   const session = await requireSession();
-  const { householdId, userId } = await requireCurrentMembership();
+  const { householdId, userId, role } = await requireCurrentMembership();
   const [overview, invitations] = await Promise.all([getHouseholdOverview(householdId), getSentInvitations(householdId)]);
   if (!overview) notFound();
 
@@ -59,6 +60,7 @@ export async function getProfileView(): Promise<ProfileView> {
       name: overview.name,
       members,
       invitations: invitations.map((invitation) => summarizeInvitation(invitation, (date) => formatShortDate(date))),
+      canRemoveMembers: role === "admin",
       isLastMember: members.length === 1,
     },
   };

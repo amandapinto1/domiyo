@@ -9,8 +9,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyDay } from "@/components/ui/empty-day";
 import { FormAlert } from "@/components/ui/form-alert";
 import { FOCUS_RING, OUTLINE_PILL } from "@/components/ui/styles";
-import { addDays, formatItemDate, formatMonth, formatMonthYear, formatWeekRange } from "@/lib/dates";
+import { addDays, centeredDayStripStart, formatItemDate, formatMonth, formatMonthYear, formatWeekRange } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
+import { WeekSwipeArea } from "../../_components/week-swipe-area";
 import { deleteAgendaItemAction } from "../_actions/delete-agenda-item";
 import type { AgendaItemView, AgendaView } from "../_data-access/get-agenda-view";
 import { AGENDAS_PARAM } from "./agenda-item-schema";
@@ -30,7 +31,7 @@ type Panel = { kind: "detail" | "edit"; itemId: string } | { kind: "create" } | 
 
 /** Agenda screen: week navigation, agenda filter, the day (mobile) or week (desktop) and the item panels. */
 export function AgendaContent({ view }: { view: AgendaView }) {
-  const { householdId, today, selectedDay, week, agendas, selectedAgendaIds, ownAgendaId, itemsUnavailable, currentCronograma, items } = view;
+  const { householdId, today, selectedDay, week, dayStripStart, agendas, selectedAgendaIds, ownAgendaId, canImportPdf, itemsUnavailable, currentCronograma, items } = view;
   const router = useRouter();
   const panelId = useId();
   const [panel, setPanel] = useState<Panel>(null);
@@ -39,14 +40,14 @@ export function AgendaContent({ view }: { view: AgendaView }) {
 
   const allIds = agendas.map((agenda) => agenda.id);
   const agendasValue = selectionParam(selectedAgendaIds, allIds);
-  const href = (day: string, agendaValue = agendasValue) => {
+  const href = (day: string, agendaValue = agendasValue, start = dayStripStart) => {
     const params = new URLSearchParams();
     if (day !== today) params.set("day", day);
     if (agendaValue) params.set(AGENDAS_PARAM, agendaValue);
+    if (start !== centeredDayStripStart(day)) params.set("start", start);
     const query = params.toString();
     return query ? `${ROUTES.agenda}?${query}` : ROUTES.agenda;
   };
-
   const activeItem = panel && panel.kind !== "create" ? (items.find((item) => item.id === panel.itemId) ?? null) : null;
   const isPanelOpen = panel?.kind === "create" || activeItem !== null;
   const dayItems = items.filter((item) => item.date === selectedDay);
@@ -56,11 +57,23 @@ export function AgendaContent({ view }: { view: AgendaView }) {
 
   const weekNavigation = (
     <div className="flex items-center justify-between gap-3">
-      <Link href={href(addDays(selectedDay, -7))} replace scroll={false} aria-label="Semana anterior" className={ICON_BUTTON}>
+      <Link
+        href={href(addDays(selectedDay, -7), agendasValue, centeredDayStripStart(addDays(selectedDay, -7)))}
+        replace
+        scroll={false}
+        aria-label="Semana anterior"
+        className={ICON_BUTTON}
+      >
         <ChevronLeft aria-hidden="true" className="size-5" strokeWidth={2} />
       </Link>
       <p className="text-body-small text-text-secondary">{formatWeekRange(week[0].date, week[6].date)}</p>
-      <Link href={href(addDays(selectedDay, 7))} replace scroll={false} aria-label="Próxima semana" className={ICON_BUTTON}>
+      <Link
+        href={href(addDays(selectedDay, 7), agendasValue, centeredDayStripStart(addDays(selectedDay, 7)))}
+        replace
+        scroll={false}
+        aria-label="Próxima semana"
+        className={ICON_BUTTON}
+      >
         <ChevronRight aria-hidden="true" className="size-5" strokeWidth={2} />
       </Link>
     </div>
@@ -80,9 +93,9 @@ export function AgendaContent({ view }: { view: AgendaView }) {
               Ver cronograma
             </a>
           ) : null}
-          {ownAgendaId ? (
+          {ownAgendaId && canImportPdf ? (
             <Link href={ROUTES.agendaImport(ownAgendaId)} className={`${HEADER_BUTTON} hidden md:flex`}>
-            <Upload aria-hidden="true" className="size-5" strokeWidth={1.75} />
+              <Upload aria-hidden="true" className="size-5" strokeWidth={1.75} />
               {currentCronograma ? "Importar novo PDF" : "Importar cronograma"}
             </Link>
           ) : null}
@@ -116,7 +129,7 @@ export function AgendaContent({ view }: { view: AgendaView }) {
             {formatMonth(selectedDay)}
           </h2>
           <div className="flex items-center gap-2">
-            {ownAgendaId ? (
+            {ownAgendaId && canImportPdf ? (
               <Link href={ROUTES.agendaImport(ownAgendaId)} aria-label="Importar cronograma" title="Importar cronograma" className={`${ICON_BUTTON} md:hidden`}>
               <Upload aria-hidden="true" className="size-5" strokeWidth={1.75} />
               </Link>
@@ -152,47 +165,15 @@ export function AgendaContent({ view }: { view: AgendaView }) {
           </a>
         ) : null}
 
-        <nav aria-label="Dias da semana" className="lg:hidden">
-          <ul className="flex justify-between gap-1">
-            {week.map((day) => {
-              const isSelected = day.date === selectedDay;
-              return (
-                <li key={day.date}>
-                  <Link
-                    href={href(day.date)}
-                    replace
-                    scroll={false}
-                    aria-current={isSelected ? "date" : undefined}
-                    className={`relative flex h-17.5 w-10 flex-col items-center justify-center rounded-full ${FOCUS_RING} ${
-                      isSelected
-                        ? "bg-lavender-900 text-white dark:bg-lime-500 dark:text-lavender-900"
-                        : "bg-lavender-100 text-text dark:bg-lavender-800"
-                    }`}
-                  >
-                    {day.date === today ? (
-                      <span
-                        aria-hidden="true"
-                        className={`absolute top-0.75 left-1/2 size-1.5 -translate-x-1/2 rounded-full ${
-                          isSelected ? "bg-lime-500 dark:bg-lavender-900" : "bg-lavender-700 dark:bg-lime-500"
-                        }`}
-                      />
-                    ) : null}
-                    <span aria-hidden="true" className="text-numeric-emphasis font-medium">
-                      {day.dayOfMonth}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className={`text-body-small ${isSelected ? "text-lavender-300 dark:text-lavender-900" : "text-text-secondary"}`}
-                    >
-                      {day.weekdayShort}
-                    </span>
-                    <span className="sr-only">{day.longLabel}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <WeekSwipeArea
+          key={dayStripStart}
+          className="lg:hidden"
+          startDate={dayStripStart}
+          selectedDay={selectedDay}
+          today={today}
+          href={(day, start) => href(day, agendasValue, start)}
+          onWindowChange={(start) => router.replace(href(selectedDay, agendasValue, start), { scroll: false })}
+        />
 
         <div className="relative hidden lg:block">
           <WeekGrid

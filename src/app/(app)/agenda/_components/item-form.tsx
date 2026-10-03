@@ -118,9 +118,8 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
           onClick={() => setIsPickingDate(true)}
           aria-haspopup="dialog"
           aria-describedby={errors.date ? "item-date-value item-date-error" : "item-date-value"}
-          className={`flex h-13.5 w-full cursor-pointer items-center justify-between gap-3 rounded-md border-[1.5px] bg-white px-4 text-left text-body text-text dark:bg-lavender-950 ${
-            errors.date ? "border-danger" : "border-lavender-600"
-          } ${FOCUS_RING}`}
+          className={`flex h-13.5 w-full cursor-pointer items-center justify-between gap-3 rounded-md border-[1.5px] bg-white px-4 text-left text-body text-text dark:bg-lavender-950 ${errors.date ? "border-danger" : "border-lavender-600"
+            } ${FOCUS_RING}`}
         >
           <span id="item-date-value">{date ? date.split("-").reverse().join("/") : "Escolha a data"}</span>
           <CalendarDays aria-hidden="true" className="size-5 shrink-0 text-lavender-700 dark:text-lavender-300" strokeWidth={1.75} />
@@ -140,14 +139,21 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
       />
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-body-small font-medium text-text">Horário</legend>
-        <div className="grid grid-cols-2 gap-3">
-          <FormField {...field("startTime", "Início")}>
-            <Input type="time" disabled={isAllDay} {...control("startTime")} />
-          </FormField>
-          <FormField {...field("endTime", "Fim")}>
-            <Input type="time" disabled={isAllDay} {...control("endTime")} />
-          </FormField>
+        <div className="flex justify-between w-full" style={{ paddingRight: "2rem" }}>
+
+          <div style={{ width: "43%" }}>
+            <FormField {...field("startTime", "Início")}>
+              <Input type="time" disabled={isAllDay} {...control("startTime")} />
+            </FormField>
+          </div>
+
+          <div style={{ width: "43%" }}>
+            <FormField {...field("endTime", "Fim")}>
+              <Input type="time" disabled={isAllDay} {...control("endTime")} />
+            </FormField>
+          </div>
         </div>
+
         <label htmlFor="item-all-day" className="mt-1 flex cursor-pointer items-center gap-3 self-start text-body text-text">
           <Checkbox id="item-all-day" checked={isAllDay} disabled={false} onChange={toggleAllDay} />
           O dia todo

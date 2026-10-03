@@ -78,6 +78,13 @@
       "when": 1790999890850,
       "tag": "0010_agenda_item_sharing",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791058371480,
+      "tag": "0011_household_member_pdf_import_permission",
+      "breakpoints": true
     }
   ]
 }

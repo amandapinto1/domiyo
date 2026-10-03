@@ -1,4 +1,5 @@
 import { expect, type Browser, type Cookie, type Page } from "@playwright/test";
+import postgres from "postgres";
 
 export async function signIn(page: Page, user: { email: string; password: string }) {
   await page.getByLabel("E-mail").fill(user.email);
@@ -12,6 +13,15 @@ export async function sessionCookies(
   baseURL: string | undefined,
   user: { email: string; password: string },
 ): Promise<Cookie[]> {
+  const databaseUrl = process.env.TEST_DATABASE_URL;
+  if (!databaseUrl) throw new Error("TEST_DATABASE_URL is not set.");
+  const client = postgres(databaseUrl, { max: 1 });
+  try {
+    await client`delete from rate_limits`;
+  } finally {
+    await client.end();
+  }
+
   const context = await browser.newContext({ baseURL });
   const page = await context.newPage();
   await page.goto("/login");

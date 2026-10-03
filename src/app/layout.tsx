@@ -29,7 +29,14 @@ export const metadata: Metadata = {
 
 export async function generateViewport(): Promise<Viewport> {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
-  return { themeColor: getThemeColor(theme), viewportFit: "cover" };
+  return {
+    themeColor: getThemeColor(theme),
+    viewportFit: "cover",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  };
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

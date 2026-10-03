@@ -23,6 +23,25 @@ function toCalendarDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+export function daysStartingOn(day: string, count = DAYS_IN_WEEK): WeekDay[] {
+  const start = toUtcDate(day);
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(start);
+    date.setUTCDate(start.getUTCDate() + index);
+    const calendarDate = toCalendarDate(date);
+    return {
+      date: calendarDate,
+      dayOfMonth: date.getUTCDate(),
+      weekdayShort: WEEKDAY_ABBREVIATIONS[date.getUTCDay()],
+      longLabel: formatLongDate(calendarDate),
+    };
+  });
+}
+
+export function centeredDayStripStart(day: string): string {
+  return addDays(day, -Math.floor(DAYS_IN_WEEK / 2));
+}
+
 /** The calendar date of `instant` in `timeZone`. */
 export function calendarDateIn(timeZone: string, instant = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(
@@ -47,18 +66,7 @@ export function formatShortDate(instant: Date, timeZone = APP_TIME_ZONE): string
 export function weekOf(day: string): WeekDay[] {
   const sunday = toUtcDate(day);
   sunday.setUTCDate(sunday.getUTCDate() - sunday.getUTCDay());
-
-  return Array.from({ length: DAYS_IN_WEEK }, (_, index) => {
-    const date = new Date(sunday);
-    date.setUTCDate(sunday.getUTCDate() + index);
-    const calendarDate = toCalendarDate(date);
-    return {
-      date: calendarDate,
-      dayOfMonth: date.getUTCDate(),
-      weekdayShort: WEEKDAY_ABBREVIATIONS[date.getUTCDay()],
-      longLabel: formatLongDate(calendarDate),
-    };
-  });
+  return daysStartingOn(toCalendarDate(sunday));
 }
 
 export function addDays(day: string, days: number): string {

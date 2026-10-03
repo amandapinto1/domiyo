@@ -89,6 +89,9 @@ test("Início greets the member and shows today's empty agenda", async ({ page, 
     await expectHitboxWidths();
     await expectInactiveLabelsHidden();
     await expectPillMatchesSelectedSlot();
+    const dayStrip = page.getByRole("navigation", { name: "Dias da semana" });
+    await expect(dayStrip.getByRole("link")).toHaveCount(7);
+    await expect(dayStrip.getByRole("link").nth(3)).toHaveAttribute("aria-current", "date");
     await navigation.getByRole("link", { name: "Perfil" }).click();
     await expect(page).toHaveURL(/\/profile$/);
     await expectIconsVerticallyAligned();
@@ -126,9 +129,50 @@ test("the week strip selects another day", async ({ page }) => {
   );
   const otherDay = week.nth(currentIndex === 0 ? 1 : 0);
   await otherDay.click();
-  await expect(page).toHaveURL(/\/home\?day=\d{4}-\d{2}-\d{2}$/);
+  await expect(page).toHaveURL(/\/home\?day=\d{4}-\d{2}-\d{2}(?:&start=\d{4}-\d{2}-\d{2})?$/);
   await expect(otherDay).toHaveAttribute("aria-current", "date");
   await expect(page.getByText("Nenhum compromisso no dia selecionado")).toBeVisible();
+});
+
+test("mobile day strip swipes without changing selection until a day is clicked", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "day-strip swiping is mobile-only");
+
+  const week = page.getByRole("navigation", { name: "Dias da semana" });
+  const firstVisibleHref = await week.locator('li:not([aria-hidden="true"]) a').first().getAttribute("href");
+  const initialStart = new URL(firstVisibleHref!, page.url()).searchParams.get("start");
+  if (!initialStart) throw new Error("The centered day strip should expose its start date.");
+  const bounds = await week.boundingBox();
+  if (!bounds) throw new Error("The week strip should be visible.");
+  const client = await page.context().newCDPSession(page);
+  const x = bounds.x + bounds.width / 2;
+  const y = bounds.y + bounds.height / 2;
+
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - 140, y }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect.poll(() => new URL(page.url()).searchParams.get("start")).toBeTruthy();
+  const leftStart = new URL(page.url()).searchParams.get("start");
+  expect(leftStart).not.toBe(initialStart);
+  expect(new URL(page.url()).searchParams.has("day")).toBe(false);
+  if (!leftStart) throw new Error("The left swipe should move the day strip.");
+
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + 140, y }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect
+    .poll(() => {
+      const currentStart = new URL(page.url()).searchParams.get("start") ?? initialStart;
+      return Date.parse(`${currentStart}T00:00:00Z`);
+    })
+    .toBeLessThan(Date.parse(`${leftStart}T00:00:00Z`));
+  expect(new URL(page.url()).searchParams.has("day")).toBe(false);
+  await client.detach();
+
+  const otherDay = week.locator('li:not([aria-hidden="true"]) a:not([aria-current="date"])').first();
+  const otherDayHref = await otherDay.getAttribute("href");
+  await otherDay.click();
+  await expect(week.locator('a[aria-current="date"]')).toHaveAttribute("href", otherDayHref!);
+  await expect(page).toHaveURL(/\/home\?day=\d{4}-\d{2}-\d{2}(?:&start=\d{4}-\d{2}-\d{2})?$/);
 });
 
 test("an invalid day falls back to today", async ({ page }) => {

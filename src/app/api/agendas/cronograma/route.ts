@@ -27,6 +27,7 @@ export async function POST(request: Request) {
   const currentMembership = await getMembership(session.user.id);
   if (!currentMembership) return error(404, "Essa agenda não está disponível.");
   const membership = await requireHouseholdMember(currentMembership.householdId);
+  if (membership.canImportPdf !== true) return error(404, "Essa agenda não está disponível.");
 
   const declaredLength = Number(request.headers.get("content-length"));
   if (!Number.isInteger(declaredLength) || declaredLength <= 0) return error(411, "Envie o arquivo novamente.");

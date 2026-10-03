@@ -1,6 +1,6 @@
 import { Bell } from "lucide-react";
 import { z } from "zod";
-import { APP_TIME_ZONE, calendarDateIn, formatLongDate } from "@/lib/dates";
+import { APP_TIME_ZONE, calendarDateIn, centeredDayStripStart, formatLongDate } from "@/lib/dates";
 import type { SearchParams } from "@/lib/routes";
 import { AgendaCard } from "./_components/agenda-card";
 import { Timeline } from "./_components/timeline";
@@ -10,8 +10,11 @@ const daySchema = z.iso.date();
 
 export default async function HomePage({ searchParams }: { searchParams: SearchParams }) {
   const today = calendarDateIn(APP_TIME_ZONE);
-  const requestedDay = daySchema.safeParse((await searchParams).day);
+  const params = await searchParams;
+  const requestedDay = daySchema.safeParse(params.day);
   const selectedDay = requestedDay.success ? requestedDay.data : today;
+  const requestedStripStart = daySchema.safeParse(params.start);
+  const dayStripStart = requestedStripStart.success ? requestedStripStart.data : centeredDayStripStart(selectedDay);
   const { firstName, items } = await getHomeView(selectedDay);
 
   return (
@@ -34,7 +37,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
 
       <div className="mt-6 flex-1 md:mt-8 xl:grid xl:grid-cols-[37.5rem_minmax(0,1fr)] xl:gap-8">
         <div className="md:max-w-150">
-          <AgendaCard today={today} selectedDay={selectedDay} itemCount={items.length} />
+          <AgendaCard today={today} selectedDay={selectedDay} dayStripStart={dayStripStart} itemCount={items.length} />
           <Timeline items={items} />
         </div>
 

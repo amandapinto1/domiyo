@@ -126,6 +126,7 @@
 html {
   background-color: var(--app-background);
   color-scheme: light;
+  overflow-x: clip;
 }
 
 html[data-theme="dark"] {
@@ -149,17 +150,20 @@ body {
     width 460ms cubic-bezier(0.22, 1.3, 0.36, 1);
 }
 
-.dialog-drawer[open] {
-  animation: dialog-drawer-rise 820ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.dialog-mobile-dismissable[open] {
   translate: 0 var(--dialog-drag-y, 0px);
   transition: translate 820ms cubic-bezier(0.4, 0, 1, 1);
 }
 
-.dialog-drawer[open][data-dragging="true"] {
+.dialog-drawer[open] {
+  animation: dialog-drawer-rise 820ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dialog-mobile-dismissable[open][data-dragging="true"] {
   transition: none;
 }
 
-.dialog-drawer[open][data-closing] {
+.dialog-mobile-dismissable[open][data-closing] {
   animation: none;
   translate: 0 var(--dialog-drag-y, calc(100% + 1px));
   transition: translate 820ms cubic-bezier(0.4, 0, 1, 1);
@@ -181,7 +185,7 @@ body {
   transition: opacity 820ms cubic-bezier(0.4, 0, 1, 1);
 }
 
-.dialog-drawer[open][data-closing]::backdrop {
+.dialog-mobile-dismissable[open][data-closing]::backdrop {
   animation: none;
   opacity: 0;
 }

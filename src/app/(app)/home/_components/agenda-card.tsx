@@ -1,7 +1,11 @@
+"use client";
+
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { weekOf } from "@/lib/dates";
+import { useRouter } from "next/navigation";
+import { centeredDayStripStart } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
+import { WeekSwipeArea } from "../../_components/week-swipe-area";
 
 const FOCUS_RING = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
@@ -10,10 +14,19 @@ function describeCount(count: number): string {
   return count === 1 ? "1 compromisso" : `${count} compromissos`;
 }
 
-type AgendaCardProps = { today: string; selectedDay: string; itemCount: number };
+type AgendaCardProps = { today: string; selectedDay: string; dayStripStart: string; itemCount: number };
 
 /** "Agenda de hoje": item count and the week strip that picks the day shown in the timeline. */
-export function AgendaCard({ today, selectedDay, itemCount }: AgendaCardProps) {
+export function AgendaCard({ today, selectedDay, dayStripStart, itemCount }: AgendaCardProps) {
+  const router = useRouter();
+  const href = (day: string, start = dayStripStart) => {
+    const params = new URLSearchParams();
+    if (day !== today) params.set("day", day);
+    if (start !== centeredDayStripStart(day)) params.set("start", start);
+    const query = params.toString();
+    return query ? `${ROUTES.home}?${query}` : ROUTES.home;
+  };
+
   return (
     <section aria-labelledby="agenda-card-title" className="flex flex-col gap-5 rounded-xl bg-white p-5 dark:bg-lavender-900">
       <div className="flex items-start justify-between gap-4">
@@ -33,47 +46,14 @@ export function AgendaCard({ today, selectedDay, itemCount }: AgendaCardProps) {
         </Link>
       </div>
 
-      <nav aria-label="Dias da semana">
-        <ul className="flex justify-between gap-1">
-          {weekOf(selectedDay).map((day) => {
-            const isSelected = day.date === selectedDay;
-            return (
-              <li key={day.date}>
-                <Link
-                  href={day.date === today ? ROUTES.home : `${ROUTES.home}?day=${day.date}`}
-                  replace
-                  scroll={false}
-                  aria-current={isSelected ? "date" : undefined}
-                  className={`relative flex h-17.5 w-10 flex-col items-center justify-center rounded-full ${FOCUS_RING} ${
-                    isSelected
-                      ? "bg-lavender-900 text-white dark:bg-lime-500 dark:text-lavender-900"
-                      : "bg-lavender-100 text-text dark:bg-lavender-800"
-                  }`}
-                >
-                  {day.date === today ? (
-                    <span
-                      aria-hidden="true"
-                      className={`absolute top-0.75 left-1/2 size-1.5 -translate-x-1/2 rounded-full ${
-                        isSelected ? "bg-lime-500 dark:bg-lavender-900" : "bg-lavender-700 dark:bg-lime-500"
-                      }`}
-                    />
-                  ) : null}
-                  <span aria-hidden="true" className="text-numeric-emphasis font-medium">
-                    {day.dayOfMonth}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className={`text-body-small ${isSelected ? "text-lavender-300 dark:text-lavender-900" : "text-text-secondary"}`}
-                  >
-                    {day.weekdayShort}
-                  </span>
-                  <span className="sr-only">{day.longLabel}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <WeekSwipeArea
+        key={dayStripStart}
+        startDate={dayStripStart}
+        selectedDay={selectedDay}
+        today={today}
+        href={href}
+        onWindowChange={(start) => router.replace(href(selectedDay, start), { scroll: false })}
+      />
     </section>
   );
 }

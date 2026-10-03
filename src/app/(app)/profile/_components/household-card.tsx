@@ -90,7 +90,7 @@ export function HouseholdCard({ household }: { household: Household }) {
                 {member.roleLabel}
               </p>
             </div>
-            {member.isYou ? null : (
+            {!household.canRemoveMembers || member.isYou ? null : (
               <button
                 type="button"
                 onClick={() => setMemberToRemove(member)}

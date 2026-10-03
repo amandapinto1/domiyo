@@ -12,7 +12,7 @@ test("Perfil shows the account and the household", async ({ page }) => {
   await expect(account).toContainText(`${E2E_MEMBER.name} ${E2E_MEMBER.surname}`);
   await expect(account).toContainText(E2E_MEMBER.email);
 
-  const household = page.getByRole("region", { name: "Meu household" });
+  const household = page.getByRole("region", { name: "Casa da Bia" });
   await expect(household.getByText("Casa da Bia", { exact: true })).toBeVisible();
   await expect(household.getByText("1 membro", { exact: true })).toBeVisible();
   await expect(household.getByRole("list", { name: "Membros" })).toContainText("Você · admin");
@@ -69,7 +69,7 @@ test.describe.serial("household management", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
 
-    const household = page.getByRole("region", { name: "Meu household" });
+    const household = page.getByRole("region", { name: "Casa da Olga" });
     await expect(household.getByText(email)).toBeVisible();
     await household.getByRole("button", { name: `Cancelar convite de ${email}` }).click();
     await expect(household.getByText(email)).toBeHidden();
@@ -117,10 +117,15 @@ test.describe.serial("household management", () => {
     await signIn(partner, E2E_PARTNER);
     await partner.getByRole("button", { name: "Aceitar convite" }).click();
     await expect(partner).toHaveURL(/\/home$/);
+    await partner.goto("/profile");
+    const partnerHousehold = partner.getByRole("region", { name: "Casa da Olga" });
+    await expect(partnerHousehold.getByRole("list", { name: "Membros" })).toContainText("Você · membro");
+    await expect(partnerHousehold.getByRole("button", { name: `Remover ${E2E_OWNER.name}` })).toHaveCount(0);
+    await expect(partnerHousehold.getByRole("button", { name: "Sair do household" })).toBeVisible();
     await partnerContext.close();
 
     await page.reload();
-    const household = page.getByRole("region", { name: "Meu household" });
+    const household = page.getByRole("region", { name: "Casa da Olga" });
     await expect(household.getByText("2 membros", { exact: true })).toBeVisible();
     await household.getByRole("button", { name: `Remover ${E2E_PARTNER.name}` }).click();
     const confirm = page.getByRole("alertdialog", { name: `Remover ${E2E_PARTNER.name} do household?` });

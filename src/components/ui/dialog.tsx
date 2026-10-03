@@ -1,7 +1,7 @@
 "use client";
 
 import { TriangleAlert, X } from "lucide-react";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { FOCUS_RING } from "./styles";
 
 type DialogProps = {
@@ -37,6 +37,44 @@ const CONTENT = {
   modal: "p-6 md:p-8",
 } as const;
 const DRAG_CLOSE_THRESHOLD = 96;
+const DRAG_ACTIVATION_THRESHOLD = 6;
+const INTERACTIVE_TARGET_SELECTOR =
+  "button, a[href], input, select, textarea, label, summary, [contenteditable='true'], [role='button'], [role='link'], [role='checkbox'], [role='radio'], [role='switch'], [role='tab'], [role='menuitem']";
+
+type DialogDrag = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  offsetY: number;
+  didMove: boolean;
+  isGrip: boolean;
+};
+
+function isSwipeDismissVariant(variant: DialogProps["variant"]): boolean {
+  return variant === "sheet" || variant === "drawer";
+}
+
+function shouldAnimateDismiss(variant: DialogProps["variant"]): boolean {
+  return variant === "drawer" || (variant === "sheet" && !window.matchMedia("(min-width: 768px)").matches);
+}
+
+function getDismissGestureTarget(target: EventTarget | null, dialog: HTMLDialogElement): { isGrip: boolean } | null {
+  if (!(target instanceof Element) || !dialog.contains(target)) return null;
+  if (target.closest("dialog") !== dialog) return null;
+
+  const isGrip = target.closest("[data-dialog-grip]") !== null;
+  if (!isGrip && target.closest(INTERACTIVE_TARGET_SELECTOR)) return null;
+
+  let ancestor: Element | null = target;
+  while (ancestor && ancestor !== dialog) {
+    const style = window.getComputedStyle(ancestor);
+    const isScrollable = (style.overflowY === "auto" || style.overflowY === "scroll") && ancestor.scrollHeight > ancestor.clientHeight;
+    if (isScrollable && ancestor.scrollTop > 0) return null;
+    ancestor = ancestor.parentElement;
+  }
+
+  return dialog.scrollTop <= 0 ? { isGrip } : null;
+}
 
 /**
  * Native modal dialog: focus moves inside, Escape and the backdrop close it, and focus returns to the trigger.
@@ -54,73 +92,150 @@ export function Dialog({
   children,
 }: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const dragRef = useRef<{ pointerId: number; startY: number; offsetY: number } | null>(null);
+  const dragRef = useRef<DialogDrag | null>(null);
   const suppressGripClickRef = useRef(false);
+  const requestCloseRef = useRef<() => void>(() => undefined);
   const [retainedChildren, setRetainedChildren] = useState<ReactNode>(children);
 
   if (isOpen && retainedChildren !== children) setRetainedChildren(children);
 
   const requestClose = () => {
     const dialog = dialogRef.current;
-    if (variant === "drawer" && dialog?.open && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (shouldAnimateDismiss(variant) && dialog?.open && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setRetainedChildren(children);
       dialog.dataset.closing = "true";
       dialog.style.setProperty("--dialog-drag-y", "calc(100% + 1px)");
     }
     onClose();
   };
+  useEffect(() => {
+    requestCloseRef.current = requestClose;
+  });
 
-  const handleGripPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const beginDrag = useCallback((target: EventTarget | null, pointerId: number, clientX: number, clientY: number) => {
     const dialog = dialogRef.current;
-    if (variant !== "drawer" || !dialog || event.button !== 0) return;
+    if (
+      !isSwipeDismissVariant(variant) ||
+      window.matchMedia("(min-width: 768px)").matches ||
+      !dialog?.open ||
+      dragRef.current
+    ) return;
 
-    dragRef.current = { pointerId: event.pointerId, startY: event.clientY, offsetY: 0 };
+    const gestureTarget = getDismissGestureTarget(target, dialog);
+    if (!gestureTarget) return;
+
+    dragRef.current = {
+      pointerId,
+      startX: clientX,
+      startY: clientY,
+      offsetY: 0,
+      didMove: false,
+      isGrip: gestureTarget.isGrip,
+    };
     suppressGripClickRef.current = false;
-    dialog.dataset.dragging = "true";
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
+  }, [variant]);
 
-  const handleGripPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const updateDrag = (dialog: HTMLDialogElement, pointerId: number, clientX: number, clientY: number) => {
     const drag = dragRef.current;
-    const dialog = dialogRef.current;
-    if (!drag || !dialog || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.pointerId !== pointerId) return false;
 
-    drag.offsetY = Math.min(dialog.offsetHeight, Math.max(0, event.clientY - drag.startY));
-    if (drag.offsetY >= 6) suppressGripClickRef.current = true;
+    const offsetX = clientX - drag.startX;
+    const offsetY = clientY - drag.startY;
+    if (!drag.didMove && Math.abs(offsetX) > Math.abs(offsetY)) {
+      dragRef.current = null;
+      dialog.style.removeProperty("--dialog-drag-y");
+      return false;
+    }
+
+    drag.offsetY = Math.min(dialog.offsetHeight, Math.max(0, offsetY));
+    if (drag.offsetY >= DRAG_ACTIVATION_THRESHOLD) {
+      drag.didMove = true;
+      dialog.dataset.dragging = "true";
+    }
     dialog.style.setProperty("--dialog-drag-y", `${drag.offsetY}px`);
+    return drag.didMove;
   };
 
-  const handleGripPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const finishDrag = (dialog: HTMLDialogElement, pointerId: number) => {
     const drag = dragRef.current;
-    const dialog = dialogRef.current;
-    if (!drag || !dialog || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.pointerId !== pointerId) return;
 
     dragRef.current = null;
     dialog.removeAttribute("data-dragging");
-    if (drag.offsetY < 6) {
+    if (drag.didMove && drag.isGrip) suppressGripClickRef.current = true;
+
+    if (!drag.didMove || drag.offsetY < DRAG_CLOSE_THRESHOLD) {
       dialog.style.removeProperty("--dialog-drag-y");
       return;
     }
 
-    suppressGripClickRef.current = true;
-    if (drag.offsetY < DRAG_CLOSE_THRESHOLD) {
-      dialog.style.removeProperty("--dialog-drag-y");
-      return;
-    }
-
-    requestClose();
+    requestCloseRef.current();
   };
 
-  const handleGripPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (dragRef.current?.pointerId !== event.pointerId) return;
+  const cancelDrag = (dialog: HTMLDialogElement, pointerId: number) => {
+    if (dragRef.current?.pointerId !== pointerId) return;
     dragRef.current = null;
-    suppressGripClickRef.current = false;
-    const dialog = dialogRef.current;
-    if (dialog) {
-      dialog.removeAttribute("data-dragging");
-      dialog.style.removeProperty("--dialog-drag-y");
+    dialog.removeAttribute("data-dragging");
+    dialog.style.removeProperty("--dialog-drag-y");
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDialogElement>) => {
+    if (event.pointerType === "touch" || event.button !== 0) return;
+    beginDrag(event.target, event.pointerId, event.clientX, event.clientY);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDialogElement>) => {
+    const wasDragging = dragRef.current?.didMove ?? false;
+    const isDragging = updateDrag(event.currentTarget, event.pointerId, event.clientX, event.clientY);
+    if (isDragging) {
+      if (!wasDragging) event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
     }
   };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDialogElement>) => {
+    finishDrag(event.currentTarget, event.pointerId);
+  };
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLDialogElement>) => {
+    cancelDrag(event.currentTarget, event.pointerId);
+  };
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || !isSwipeDismissVariant(variant)) return;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const touch = event.changedTouches[0];
+      if (touch) beginDrag(event.target, touch.identifier, touch.clientX, touch.clientY);
+    };
+    const handleTouchMove = (event: TouchEvent) => {
+      const drag = dragRef.current;
+      const touch = drag ? Array.from(event.touches).find((currentTouch) => currentTouch.identifier === drag.pointerId) : undefined;
+      if (!drag || !touch) return;
+      if (updateDrag(dialog, drag.pointerId, touch.clientX, touch.clientY)) event.preventDefault();
+    };
+    const handleTouchEnd = (event: TouchEvent) => {
+      const endedTouch = Array.from(event.changedTouches).find((touch) => touch.identifier === dragRef.current?.pointerId);
+      if (endedTouch) finishDrag(dialog, endedTouch.identifier);
+    };
+    const handleTouchCancel = (event: TouchEvent) => {
+      const cancelledTouch = Array.from(event.changedTouches).find((touch) => touch.identifier === dragRef.current?.pointerId);
+      if (cancelledTouch) cancelDrag(dialog, cancelledTouch.identifier);
+    };
+
+    dialog.addEventListener("touchstart", handleTouchStart, { passive: true });
+    dialog.addEventListener("touchmove", handleTouchMove, { passive: false });
+    dialog.addEventListener("touchend", handleTouchEnd, { passive: true });
+    dialog.addEventListener("touchcancel", handleTouchCancel, { passive: true });
+    return () => {
+      dialog.removeEventListener("touchstart", handleTouchStart);
+      dialog.removeEventListener("touchmove", handleTouchMove);
+      dialog.removeEventListener("touchend", handleTouchEnd);
+      dialog.removeEventListener("touchcancel", handleTouchCancel);
+    };
+  }, [beginDrag, variant]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -135,7 +250,7 @@ export function Dialog({
       dialog.showModal();
       dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     } else if (!isOpen && dialog.open) {
-      if (variant === "drawer" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (shouldAnimateDismiss(variant) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         dialog.dataset.closing = "true";
         dialog.style.setProperty("--dialog-drag-y", "calc(100% + 1px)");
       } else {
@@ -168,12 +283,16 @@ export function Dialog({
       onClick={(event) => {
         if (event.target === event.currentTarget) requestClose();
       }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       onTransitionEnd={(event) => {
         if (event.target === event.currentTarget && event.propertyName === "translate" && event.currentTarget.dataset.closing) {
           event.currentTarget.close();
         }
       }}
-      className={`max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white p-0 text-left text-text backdrop:bg-lavender-900/60 dark:bg-lavender-900 dark:[--app-input:var(--color-lavender-950)] ${PANEL[variant]} ${variant === "drawer" ? "dialog-drawer" : ""}`}
+      className={`max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white p-0 text-left text-text backdrop:bg-lavender-900/60 dark:bg-lavender-900 dark:[--app-input:var(--color-lavender-950)] ${PANEL[variant]} ${isSwipeDismissVariant(variant) ? "dialog-mobile-dismissable" : ""} ${variant === "drawer" ? "dialog-drawer" : ""}`}
     >
       <div className={CONTENT[variant]}>
         {variant === "sheet" || variant === "drawer" ? (
@@ -188,11 +307,8 @@ export function Dialog({
                 }
                 requestClose();
               }}
-              onPointerDown={handleGripPointerDown}
-              onPointerMove={handleGripPointerMove}
-              onPointerUp={handleGripPointerUp}
-              onPointerCancel={handleGripPointerCancel}
               aria-label="Fechar"
+              data-dialog-grip
               className={`mx-auto mb-5 block h-6 w-16 cursor-grab touch-none rounded-full active:cursor-grabbing md:hidden ${FOCUS_RING}`}
             >
               <span aria-hidden="true" className="mx-auto block h-1 w-10 rounded-full bg-lavender-300 dark:bg-lavender-600" />

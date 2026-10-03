@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   calendarDateIn,
+  centeredDayStripStart,
+  daysStartingOn,
   formatItemDate,
   formatLongDate,
   formatMonthYear,
@@ -53,6 +55,21 @@ describe("weekOf", () => {
 
   it("starts on the day itself when it is a Sunday", () => {
     expect(weekOf("2026-09-27")[0].date).toBe("2026-09-27");
+  });
+});
+
+describe("daysStartingOn", () => {
+  it("continues a date strip from any weekday across month boundaries", () => {
+    expect(daysStartingOn("2026-10-02", 3).map(({ date, weekdayShort }) => [date, weekdayShort])).toEqual([
+      ["2026-10-02", "Sex"],
+      ["2026-10-03", "Sáb"],
+      ["2026-10-04", "Dom"],
+    ]);
+  });
+
+  it("places the selected date in the middle of a seven-day strip", () => {
+    const strip = daysStartingOn(centeredDayStripStart("2026-10-03"));
+    expect(strip[3].date).toBe("2026-10-03");
   });
 });
 
