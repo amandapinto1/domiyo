@@ -5,6 +5,7 @@ import styled from "styled-components";
 
 const StyledInput = styled.input<{ $hasTrailing: boolean }>`
   width: 100%;
+  min-width: 0;
   height: 54px;
   padding: 0 ${({ $hasTrailing }) => ($hasTrailing ? "56px" : "16px")} 0 16px;
   border: 1.5px solid var(--app-border-interactive);

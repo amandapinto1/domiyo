@@ -167,8 +167,13 @@ export function ItemForm({ householdId, item, agendas, defaultAgendaId, defaultD
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <label className="text-body-small font-medium text-text">Agendas</label>
-          <AgendaMultiSelect agendas={agendas} selected={agendaIds} onChange={setAgendaIds} />
+          <span id="item-agendas-label" className="text-body-small font-medium text-text">Agendas</span>
+          <AgendaMultiSelect
+            agendas={agendas}
+            selected={agendaIds}
+            onChange={setAgendaIds}
+            labelId="item-agendas-label"
+          />
         </div>
       )}
 

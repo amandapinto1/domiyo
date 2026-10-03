@@ -91,7 +91,7 @@ export function AgendaSelector({ agendas, selected, onChange }: AgendaSelectorPr
   );
 }
 
-export function AgendaMultiSelect({ agendas, selected, onChange }: AgendaSelectorProps) {
+export function AgendaMultiSelect({ agendas, selected, onChange, labelId }: AgendaSelectorProps & { labelId: string }) {
   const id = useId();
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -120,12 +120,13 @@ export function AgendaMultiSelect({ agendas, selected, onChange }: AgendaSelecto
     <div ref={rootRef} className="relative w-full">
       <button
         type="button"
+        aria-labelledby={`${labelId} ${id}-value`}
         aria-expanded={isOpen}
         aria-controls={`${id}-options`}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex h-13.5 w-full cursor-pointer items-center justify-between gap-3 rounded-md border-[1.5px] border-lavender-600 bg-white px-4 text-left text-body text-text dark:bg-lavender-950 ${FOCUS_RING}`}
       >
-        <span className="truncate">{label}</span>
+        <span id={`${id}-value`} className="truncate">{label}</span>
         <ChevronDown
           aria-hidden="true"
           className={`size-5 shrink-0 transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`}

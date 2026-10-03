@@ -66,6 +66,7 @@ test.describe.serial("agenda items", () => {
 
     await form.getByLabel("Fim").fill("11:30");
     await form.getByLabel("Local").fill("Hospital");
+    await form.getByRole("button", { name: /Agendas/ }).click();
     await form.getByRole("checkbox", { name: `Agenda de ${E2E_PLANNER_PARTNER.name}` }).check();
     await form.getByRole("button", { name: "Adicionar item" }).click();
     await expect(form).toBeHidden();
