@@ -4,7 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import { accounts, rateLimits, sessions, users, verifications } from "@/db/schema";
 import { ROUTES } from "@/lib/routes";
-import { sendEmail, type Email } from "@/server/email";
+import { emailFailureDetails, sendEmail, type Email } from "@/server/email";
 import { passwordChangedMessage, resetPasswordMessage, verifyEmailMessage } from "@/server/email/templates";
 import { hashPassword, verifyPassword } from "./password";
 
@@ -14,7 +14,9 @@ const STRICT_RATE_LIMIT = { window: 60, max: 3 };
 
 // Not awaited: waiting would make responses slower only for registered emails (account discovery by timing).
 function sendInBackground(email: Email) {
-  sendEmail(email).catch(() => console.error("auth.email.failed", { subject: email.subject }));
+  sendEmail(email).catch((error: unknown) =>
+    console.error("auth.email.failed", { subject: email.subject, ...emailFailureDetails(error) }),
+  );
 }
 
 export const auth = betterAuth({

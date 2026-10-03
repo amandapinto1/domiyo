@@ -3,6 +3,40 @@ import nodemailer from "nodemailer";
 
 export type Email = { to: string; subject: string; html: string; text: string };
 
+export function emailFailureDetails(error: unknown): {
+  errorName: string;
+  errorCode?: string;
+  smtpResponseCode?: number;
+  missingConfiguration?: string[];
+} {
+  if (!(error instanceof Error)) return { errorName: "UnknownError" };
+
+  const metadata = error as Error & { code?: unknown; responseCode?: unknown };
+  const errorCode = typeof metadata.code === "string" && /^[A-Z0-9_]{1,32}$/.test(metadata.code)
+    ? metadata.code
+    : undefined;
+  const smtpResponseCode = typeof metadata.responseCode === "number"
+    && Number.isInteger(metadata.responseCode)
+    && metadata.responseCode >= 100
+    && metadata.responseCode <= 599
+    ? metadata.responseCode
+    : undefined;
+  const missingConfiguration = error.message.startsWith("Missing SMTP configuration: ")
+    ? error.message
+      .slice("Missing SMTP configuration: ".length)
+      .replace(/\.$/, "")
+      .split(", ")
+      .filter((name) => ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "EMAIL_FROM_ADDRESS"].includes(name))
+    : [];
+
+  return {
+    errorName: /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "Error",
+    ...(errorCode ? { errorCode } : {}),
+    ...(smtpResponseCode ? { smtpResponseCode } : {}),
+    ...(missingConfiguration.length > 0 ? { missingConfiguration } : {}),
+  };
+}
+
 /** Sends a transactional email through the transport chosen by EMAIL_TRANSPORT (docs/ARCHITECTURE.md > Email delivery). */
 export async function sendEmail(email: Email): Promise<void> {
   const transport = process.env.EMAIL_TRANSPORT ?? "console";

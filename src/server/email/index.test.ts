@@ -10,7 +10,7 @@ vi.mock("nodemailer", () => ({
   default: { createTransport: createTransportMock },
 }));
 
-import { sendEmail } from "./index";
+import { emailFailureDetails, sendEmail } from "./index";
 
 beforeEach(() => {
   vi.stubEnv("EMAIL_TRANSPORT", "smtp");
@@ -28,6 +28,29 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
+});
+
+describe("email failure details", () => {
+  it("keeps SMTP codes but omits raw error content", () => {
+    const error = Object.assign(new Error("Rejected invitee@example.test with secret details"), {
+      code: "EAUTH",
+      responseCode: 535,
+      response: "Sensitive SMTP response",
+    });
+
+    expect(emailFailureDetails(error)).toEqual({
+      errorName: "Error",
+      errorCode: "EAUTH",
+      smtpResponseCode: 535,
+    });
+  });
+
+  it("reports missing configuration names without logging the raw message", () => {
+    expect(emailFailureDetails(new Error("Missing SMTP configuration: SMTP_PASSWORD."))).toEqual({
+      errorName: "Error",
+      missingConfiguration: ["SMTP_PASSWORD"],
+    });
+  });
 });
 
 describe("SMTP email transport", () => {

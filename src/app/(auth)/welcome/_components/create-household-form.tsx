@@ -43,7 +43,7 @@ export function CreateHouseholdForm() {
         <Input
           id="name"
           autoComplete="off"
-          placeholder="Ex.: Casa da Amanda e da Andréa"
+          placeholder="Ex.: Casa"
           aria-invalid={errors.name ? true : undefined}
           aria-describedby={describedBy({ hintId: "name-hint", errorId: "name-error", hasError: Boolean(errors.name) })}
           {...register("name")}
